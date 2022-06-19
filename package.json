@@ -1,0 +1,40 @@
+{
+	"name": "mh-b",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.ts",
+	"scripts": {
+		"build": "npx tsc",
+		"start": "node dist/server.js",
+		"dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/server.js\""
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Neh-Jain-21/mh-b.git"
+	},
+	"author": "Neh Jain",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/Neh-Jain-21/mh-b/issues"
+	},
+	"homepage": "https://github.com/Neh-Jain-21/mh-b#readme",
+	"dependencies": {
+		"cors": "^2.8.5",
+		"dotenv": "^16.0.1",
+		"express": "^4.18.1",
+		"multer": "^1.4.5-lts.1",
+		"nodemailer": "^6.7.5",
+		"uuid": "^8.3.2"
+	},
+	"devDependencies": {
+		"@types/cors": "^2.8.12",
+		"@types/express": "^4.17.13",
+		"@types/multer": "^1.4.7",
+		"@types/node": "^18.0.0",
+		"@types/nodemailer": "^6.4.4",
+		"@types/uuid": "^8.3.4",
+		"concurrently": "^7.2.2",
+		"nodemon": "^2.0.16",
+		"typescript": "^4.7.4"
+	}
+}
