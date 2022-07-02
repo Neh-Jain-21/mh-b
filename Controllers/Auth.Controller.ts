@@ -1,27 +1,24 @@
 import jwt from "jsonwebtoken";
 import path from "path";
 // SCHEMA
-import User from "../database/schemas/userSchema";
-import Token from "../database/schemas/tokenSchema";
-// RESPONSE HANDLER
-import Mailer from "../Configs/mailer";
+import User from "../Schemas/userSchema";
+import Token from "../Schemas/tokenSchema";
+// CONFIGS
+import Mailer from "../Configs/Mailer";
+import Multer from "../Configs/Multer";
+// TYPES
+import { Request, Response } from "express";
 
 class AuthController {
-	async logIn(req, res) {
+	async logIn(req: Request, res: Response) {
 		try {
 			const params = req.body;
 			let userFound = null;
 
 			if (params.username.includes("@")) {
-				userFound = await User.findOne({
-					email: params.username,
-					password: params.password,
-				});
+				userFound = await User.findOne({ email: params.username, password: params.password });
 			} else {
-				userFound = await User.findOne({
-					username: params.username,
-					password: params.password,
-				});
+				userFound = await User.findOne({ username: params.username, password: params.password });
 			}
 
 			if (userFound) {
@@ -38,13 +35,13 @@ class AuthController {
 						await Token.create({ user_id: userFound._id, auth_token: token });
 					}
 
-					resHandler.success(res, { token, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
+					res.handler.success(res, { token, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
 				}
 			} else {
-				resHandler.fail(res, 409, {}, "Email, username or password invalid");
+				res.handler.fail(res, 409, {}, "Email, username or password invalid");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -55,12 +52,12 @@ class AuthController {
 			const emailExists = await User.findOne({ email: params.email });
 
 			if (emailExists) {
-				resHandler.fail(res, 409, {}, "Email already Exists");
+				res.handler.fail(res, 409, {}, "Email already Exists");
 			} else {
 				const usernameExists = await User.findOne({ username: params.username });
 
 				if (usernameExists) {
-					resHandler.fail(res, 409, {}, "Try Different Username");
+					res.handler.fail(res, 409, {}, "Try Different Username");
 				} else {
 					const random = Math.floor(100000000 + Math.random() * 900000000);
 
@@ -94,19 +91,19 @@ class AuthController {
 						);
 
 						if (emailSent) {
-							resHandler.success(res, {}, `Welcome! Please verify your email`);
+							res.handler.success(res, {}, `Welcome! Please verify your email`);
 						} else {
 							await User.deleteOne({ _id: userCreated._id });
 
-							resHandler.fail(res, 400, {}, "Cannot send email!");
+							res.handler.fail(res, 400, {}, "Cannot send email!");
 						}
 					} else {
-						resHandler.fail(res, 400, {}, "Something went wrong");
+						res.handler.fail(res, 400, {}, "Something went wrong");
 					}
 				}
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -134,7 +131,7 @@ class AuthController {
 				res.status(404).send("User not found");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -159,16 +156,16 @@ class AuthController {
 					);
 
 					if (mailSent) {
-						resHandler.success(res, {}, `Email sent`);
+						res.handler.success(res, {}, `Email sent`);
 					} else {
-						resHandler.fail(res, 400, {}, "Something went wrong");
+						res.handler.fail(res, 400, {}, "Something went wrong");
 					}
 				}
 			} else {
-				resHandler.fail(res, 409, {}, "Email not found!");
+				res.handler.fail(res, 409, {}, "Email not found!");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -199,16 +196,16 @@ class AuthController {
 					sendEmail(params.email, "Forgot Password", `${random} is OTP for resetting password.`, callBack);
 
 					if (emailSent) {
-						resHandler.success(res, {}, `Email sent`);
+						res.handler.success(res, {}, `Email sent`);
 					} else {
-						resHandler.fail(res, 400, {}, "Cannot send email!");
+						res.handler.fail(res, 400, {}, "Cannot send email!");
 					}
 				}
 			} else {
-				resHandler.fail(res, 409, {}, "Email not found!");
+				res.handler.fail(res, 409, {}, "Email not found!");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -222,15 +219,15 @@ class AuthController {
 				const otpCorrect = await User.findOne({ email: params.email, otp: params.otp });
 
 				if (otpCorrect) {
-					resHandler.success(res, {}, `Otp verified`);
+					res.handler.success(res, {}, `Otp verified`);
 				} else {
-					resHandler.fail(res, 409, {}, `Incorrect otp`);
+					res.handler.fail(res, 409, {}, `Incorrect otp`);
 				}
 			} else {
-				resHandler.fail(res, 409, {}, "Email not found!");
+				res.handler.fail(res, 409, {}, "Email not found!");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
@@ -241,28 +238,28 @@ class AuthController {
 			const userUpdated = await User.findOneAndUpdate({ email: params.email }, { $set: { password: params.password }, $unset: { otp: 1 } });
 
 			if (userUpdated) {
-				resHandler.success(res, {}, "Password Changed");
+				res.handler.success(res, {}, "Password Changed");
 			} else {
-				resHandler.fail(res, 409, {}, "Something went wrong!");
+				res.handler.fail(res, 409, {}, "Something went wrong!");
 			}
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
 	async resetPassword(req, res) {
 		try {
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 
 	async logOut(req, res) {
 		try {
 		} catch (error) {
-			resHandler.serverError(res, error);
+			res.handler.serverError(res, error);
 		}
 	}
 }
 
-module.exports = AuthController;
+export default AuthController;

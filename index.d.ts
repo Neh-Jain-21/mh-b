@@ -9,3 +9,7 @@ declare module "express-serve-static-core" {
 		handler: ResponseHandler;
 	}
 }
+
+export type DBModels = {
+	[key: string]: any;
+};

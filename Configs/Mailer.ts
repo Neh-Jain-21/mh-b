@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 
 const Mailer = (to: string, subject: string, html: any, callBack: (err: Error | null, info: any) => void) => {
 	//set mail transporter
-	let transporter = nodemailer.createTransport({
+	const transporter = nodemailer.createTransport({
 		host: "smtp.gmail.com",
 		port: 587,
 		requireTLS: true,

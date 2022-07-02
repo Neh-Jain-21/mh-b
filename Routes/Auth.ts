@@ -3,24 +3,23 @@ import path from "path";
 import { Router } from "express";
 import uuidAPIKey from "uuid-apikey";
 // CONFIGS
-import Mailer from "../configs/mailer";
-import Multer from "../Configs/setMulter";
-
+import Mailer from "../Configs/Mailer";
+import Multer from "../Configs/Multer";
 // SCHEMAS
-import user from "../database/schemas/userSchema";
-
+import user from "../Schemas/userSchema";
 // CONTROLLERS
-const AuthController = new (require("../Controllers/Auth.Controller"))();
+import AuthController from "../Controllers/Auth.Controller";
 
 const router = Router();
+const Auth = new AuthController();
 
-router.post("/login", AuthController.logIn);
-router.post("/signup", AuthController.signUp);
-router.get("/verify-email", AuthController.verifyEmail);
-router.post("/resend-verify-email", AuthController.resendVerifyEmail);
-router.post("/send-forgotpass-email", AuthController.sendForgotPassEmail);
-router.post("/verify-otp", AuthController.verifyOtp);
-router.post("/forgotpass", AuthController.forgotPassword);
+router.post("/login", Auth.logIn);
+router.post("/signup", Auth.signUp);
+router.get("/verify-email", Auth.verifyEmail);
+router.post("/resend-verify-email", Auth.resendVerifyEmail);
+router.post("/send-forgotpass-email", Auth.sendForgotPassEmail);
+router.post("/verify-otp", Auth.verifyOtp);
+router.post("/forgotpass", Auth.forgotPassword);
 
 //editCoverImage
 // todo : Delete previous cover image if present
@@ -863,4 +862,4 @@ router.post("/followUser", async (req, res) => {
 	}
 });
 
-module.exports = router;
+export default router;

@@ -1,3 +1,5 @@
+import { Dialect } from "sequelize/types";
+
 export const STATUS_CODES = {
     // 1XX INFORMATIONAL
     CONTINUE                         : 100,
@@ -71,4 +73,19 @@ export const STATUS_CODES = {
     BANDWIDTH_LIMIT_EXCEEDED         : 509,
     NOT_EXTENDED                     : 510,
     NETWORK_AUTHENTICATION_REQUIRED  : 511
+}
+
+export const DB_CREDENTIAL = {
+    host      : process.env.DB_HOST,
+    database  : process.env.DB_DATABASE,
+    username  : process.env.DB_USERNAME,
+    password  : process.env.DB_PASSWORD,
+    dialect   : process.env.DB_DIALECT,
+    dialectOptions: {
+        ssl: {
+            require             : true,
+            rejectUnauthorized  : false,
+        },
+    },
+    logging   : false
 }
