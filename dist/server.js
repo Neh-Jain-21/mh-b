@@ -8,13 +8,12 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
-// DATABASE
-const Database_1 = __importDefault(require("./Configs/Database"));
 // CONFIGS
 const ResponseHandler_1 = __importDefault(require("./Configs/ResponseHandler"));
 // PARSE ENV
 dotenv_1.default.config();
-(0, Database_1.default)();
+// DATABASE CONNECTION
+require("./Configs/Database");
 const app = (0, express_1.default)();
 const port = process.env.PORT || 8000;
 // CHECK WHICH PROTOCOL TO USE
@@ -23,7 +22,6 @@ const connection = SHOULD_RUN_ON_HTTP === "true" ? http_1.default : https_1.defa
 // SSL CONFIG
 // const options = { key: fs.readFileSync(__dirname + "/SSL/key.pem"), cert: fs.readFileSync(__dirname + "/SSL/cert.pem") };
 // require("./Configs/globals"); // GLOBAL SETTINGS FILES
-// const server = SHOULD_RUN_ON_HTTP == "true" ? http.createServer(app) : http.createServer(options, app);
 const server = connection.createServer(app);
 // ------------------------      GLOBAL MIDDLEWARE -------------------------
 app.use((0, cors_1.default)()); // ALLOWED ALL CROSS ORIGIN REQUESTS
@@ -40,4 +38,4 @@ app.use((req, res, next) => {
 const Routes_1 = __importDefault(require("./Routes"));
 (0, Routes_1.default)(app);
 // --------------------------    START SERVER    ---------------------
-server.listen(port, () => console.log(`\nServer started on ${port} :) \n`));
+server.listen(port, () => console.log(`\nServer started on ${port} :)`));

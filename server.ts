@@ -3,13 +3,12 @@ import dotenv from "dotenv";
 import express from "express";
 import http from "http";
 import https from "https";
-// DATABASE
-import Database from "./Configs/Database";
 // CONFIGS
 import ResponseHandler from "./Configs/ResponseHandler";
 // PARSE ENV
 dotenv.config();
-Database();
+// DATABASE CONNECTION
+import "./Configs/Database";
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -22,7 +21,6 @@ const connection = SHOULD_RUN_ON_HTTP === "true" ? http : https;
 // const options = { key: fs.readFileSync(__dirname + "/SSL/key.pem"), cert: fs.readFileSync(__dirname + "/SSL/cert.pem") };
 // require("./Configs/globals"); // GLOBAL SETTINGS FILES
 
-// const server = SHOULD_RUN_ON_HTTP == "true" ? http.createServer(app) : http.createServer(options, app);
 const server = connection.createServer(app);
 
 // ------------------------      GLOBAL MIDDLEWARE -------------------------
@@ -43,4 +41,4 @@ import Routes from "./Routes";
 Routes(app);
 
 // --------------------------    START SERVER    ---------------------
-server.listen(port, () => console.log(`\nServer started on ${port} :) \n`));
+server.listen(port, () => console.log(`\nServer started on ${port} :)`));

@@ -1,13 +1,15 @@
 import jwt from "jsonwebtoken";
 import path from "path";
-// SCHEMA
-import User from "../Schemas/userSchema";
-import Token from "../Schemas/tokenSchema";
+import { Op } from "sequelize";
 // CONFIGS
 import Mailer from "../Configs/Mailer";
 import Multer from "../Configs/Multer";
 // TYPES
 import { Request, Response } from "express";
+// SCHEMAS
+import Schemas from "../Schemas";
+const User = Schemas.Users;
+const Token = Schemas.Tokens;
 
 class AuthController {
 	async logIn(req: Request, res: Response) {
@@ -16,94 +18,104 @@ class AuthController {
 			let userFound = null;
 
 			if (params.username.includes("@")) {
-				userFound = await User.findOne({ email: params.username, password: params.password });
+				userFound = await User.findOne({
+					attributes: ["id", "is_active", "username"],
+					where: { email: params.username, password: params.password },
+				});
 			} else {
-				userFound = await User.findOne({ username: params.username, password: params.password });
+				userFound = await User.findOne({
+					attributes: ["id", "is_active", "username"],
+					where: { username: params.username, password: params.password },
+				});
 			}
 
-			if (userFound) {
-				if (userFound.verified === 0) {
-					res.handler.success(res, {}, "Please verify email first");
+			if (!userFound) {
+				res.handler.validationError({}, "Email, username or password invalid");
+				return;
+			}
+
+			if (userFound.is_active && process.env.JWT_SECRET) {
+				const token = jwt.sign({ id: userFound.id }, process.env.JWT_SECRET);
+
+				const tokenAvailable = await Token.findOne({ attributes: ["id"], where: { user_id: userFound.id } });
+
+				if (tokenAvailable) {
+					await Token.update({ token }, { where: { user_id: userFound.id } });
 				} else {
-					const token = jwt.sign({ id: userFound._id }, process.env.JWT_SECRET);
-
-					const tokenAvailable = await Token.findOne({ user_id: userFound._id }, { _id: 0, user_id: 1 });
-
-					if (tokenAvailable) {
-						await Token.updateOne({ user_id: userFound._id }, { auth_token: token });
-					} else {
-						await Token.create({ user_id: userFound._id, auth_token: token });
-					}
-
-					res.handler.success(res, { token, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
+					await Token.create({ user_id: userFound.id, auth_token: token });
 				}
+
+				res.handler.success({ token, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
 			} else {
-				res.handler.fail(res, 409, {}, "Email, username or password invalid");
+				res.handler.notAllowed({}, "Please verify email first");
 			}
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+
+			res.handler.serverError();
 		}
 	}
 
-	async signUp(req, res) {
+	async signUp(req: Request, res: Response) {
 		try {
 			const params = req.body;
 
-			const emailExists = await User.findOne({ email: params.email });
-
-			if (emailExists) {
-				res.handler.fail(res, 409, {}, "Email already Exists");
-			} else {
-				const usernameExists = await User.findOne({ username: params.username });
-
-				if (usernameExists) {
-					res.handler.fail(res, 409, {}, "Try Different Username");
-				} else {
-					const random = Math.floor(100000000 + Math.random() * 900000000);
-
-					const userCreated = await User.create({
-						username: params.username,
+			const alreadyExists = await User.findOne({
+				where: {
+					[Op.or]: {
 						email: params.email,
-						password: params.password,
-						verify_id: random,
-					});
+						username: params.username,
+					},
+				},
+			});
 
-					if (userCreated) {
-						const link = `${req.protocol}://${req.get("host")}/auth/verify-email?id=${random}&userid=${userCreated._id}`;
-
-						let emailSent = true;
-
-						const callBack = async (error, info) => {
-							if (error) {
-								console.log(error);
-
-								emailSent = false;
-							} else {
-								emailSent = true;
-							}
-						};
-
-						sendEmail(
-							params.email,
-							"Confirm Email",
-							`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`,
-							callBack
-						);
-
-						if (emailSent) {
-							res.handler.success(res, {}, `Welcome! Please verify your email`);
-						} else {
-							await User.deleteOne({ _id: userCreated._id });
-
-							res.handler.fail(res, 400, {}, "Cannot send email!");
-						}
-					} else {
-						res.handler.fail(res, 400, {}, "Something went wrong");
-					}
+			if (alreadyExists) {
+				if (alreadyExists.email === params.email) {
+					res.handler.conflict({}, "Email already taken");
+					return;
+				} else {
+					res.handler.conflict({}, "Username already taken");
+					return;
 				}
 			}
+
+			const random = Math.floor(100000000 + Math.random() * 900000000);
+
+			const userCreated = await User.create({ username: params.username, email: params.email, password: params.password, otp: random });
+
+			if (userCreated) {
+				let emailSent = true;
+				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.id}`;
+
+				const callBack = async (error: Error | null, info: any) => {
+					if (error) {
+						console.log(error);
+
+						emailSent = false;
+					} else {
+						emailSent = true;
+					}
+				};
+
+				Mailer(
+					params.email,
+					"Confirm Email",
+					`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`,
+					callBack
+				);
+
+				if (emailSent) {
+					res.handler.success({}, `Welcome! Please verify your email`);
+				} else {
+					await User.destroy({ where: { id: userCreated.id } });
+
+					res.handler.serverError({}, "Cannot send email!");
+				}
+			} else {
+				res.handler.serverError();
+			}
 		} catch (error) {
-			res.handler.serverError(res, error);
+			res.handler.serverError();
 		}
 	}
 

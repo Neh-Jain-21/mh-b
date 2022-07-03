@@ -99,11 +99,11 @@ class ResponseHandler {
 	/**
 	 * Status Code - 409
 	 * @default
-	 * message = "Provided loggingrmation already exist!"
+	 * message = "Provided information already exist!"
 	 * logging = false
 	 */
 	conflict(data?: any, message?: string, logging?: boolean) {
-		this.sender(STATUS_CODES.CONFLICT, message || "Provided loggingrmation already exist!", data, logging);
+		this.sender(STATUS_CODES.CONFLICT, message || "Provided information already exist!", data, logging);
 	}
 
 	/**

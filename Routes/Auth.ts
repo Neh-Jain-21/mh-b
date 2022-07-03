@@ -5,8 +5,6 @@ import uuidAPIKey from "uuid-apikey";
 // CONFIGS
 import Mailer from "../Configs/Mailer";
 import Multer from "../Configs/Multer";
-// SCHEMAS
-import user from "../Schemas/userSchema";
 // CONTROLLERS
 import AuthController from "../Controllers/Auth.Controller";
 

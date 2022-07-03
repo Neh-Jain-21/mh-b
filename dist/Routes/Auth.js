@@ -16,8 +16,6 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const express_1 = require("express");
 const uuid_apikey_1 = __importDefault(require("uuid-apikey"));
-// SCHEMAS
-const userSchema_1 = __importDefault(require("../Schemas/userSchema"));
 // CONTROLLERS
 const Auth_Controller_1 = __importDefault(require("../Controllers/Auth.Controller"));
 const router = (0, express_1.Router)();
@@ -33,7 +31,7 @@ router.post("/forgotpass", Auth.forgotPassword);
 // todo : Delete previous cover image if present
 router.post("/editcoverimg", upload("../Server/uploads/user/", "coverImg").single("coverImg"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const User = yield userSchema_1.default.updateOne({ _id: req.body.id }, {
+        const User = yield user.updateOne({ _id: req.body.id }, {
             $set: {
                 "details.coverImg": req.file.originalname,
             },
@@ -50,7 +48,7 @@ router.post("/editcoverimg", upload("../Server/uploads/user/", "coverImg").singl
 //showCoverImage
 router.get("/showcoverpic/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const User = yield userSchema_1.default.findOne({ _id: req.params.id }, { "details.coverImg": 1 });
+        const User = yield user.findOne({ _id: req.params.id }, { "details.coverImg": 1 });
         const path = `uploads/user/${User.details.coverImg}`;
         let type = "image/png, image/jpg, image/jpeg";
         let s = fs_1.default.createReadStream(path);
@@ -70,7 +68,7 @@ router.get("/showcoverpic/:id", (req, res) => __awaiter(void 0, void 0, void 0, 
 // todo : Delete previous profile image if present
 router.post("/editprofileimg", upload("../Server/uploads/user/", "profileImg").single("profileImg"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const User = yield userSchema_1.default.updateOne({ _id: req.body.id }, {
+        const User = yield user.updateOne({ _id: req.body.id }, {
             $set: {
                 "details.profileImg": req.file.originalname,
             },
@@ -87,7 +85,7 @@ router.post("/editprofileimg", upload("../Server/uploads/user/", "profileImg").s
 //showProfileImage
 router.get("/showprofilepic/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const User = yield userSchema_1.default.findOne({ _id: req.params.id }, { "details.profileImg": 1 });
+        const User = yield user.findOne({ _id: req.params.id }, { "details.profileImg": 1 });
         const path = `uploads/user/${User.details.profileImg}`;
         let type = "image/png, image/jpg, image/jpeg";
         let s = fs_1.default.createReadStream(path);
@@ -107,7 +105,7 @@ router.get("/showprofilepic/:id", (req, res) => __awaiter(void 0, void 0, void 0
 router.post("/showUsers", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const User = yield userSchema_1.default
+        const User = yield user
             .find({ username: { $regex: params.username, $options: "i" } }, {
             _id: 0,
             username: 1,
@@ -125,7 +123,7 @@ router.post("/showUsers", (req, res) => __awaiter(void 0, void 0, void 0, functi
 router.post("/showPublicProfile", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const User = yield userSchema_1.default.findOne({ username: params.username }, {
+        const User = yield user.findOne({ username: params.username }, {
             username: 1,
             details: 1,
             followers: 1,
@@ -151,7 +149,7 @@ router.post("/showPublicProfile", (req, res) => __awaiter(void 0, void 0, void 0
 router.post("/editProfileDetails", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        yield userSchema_1.default.updateOne({ _id: params.userid }, {
+        yield user.updateOne({ _id: params.userid }, {
             $set: {
                 "details.tagline": params.tagline,
                 "details.bio": params.bio,
@@ -173,7 +171,7 @@ router.post("/editProfileDetails", (req, res) => __awaiter(void 0, void 0, void 
 router.post("/showProfileDetails", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const User = yield userSchema_1.default.findOne({ _id: params.userid }, {
+        const User = yield user.findOne({ _id: params.userid }, {
             username: 1,
             details: 1,
             followers: 1,
@@ -192,9 +190,9 @@ router.post("/showProfileDetails", (req, res) => __awaiter(void 0, void 0, void 
 router.post("/firstVisit", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const User = yield userSchema_1.default.findById(params.id).select("first_visit");
+        const User = yield user.findById(params.id).select("first_visit");
         if (User.first_visit) {
-            yield userSchema_1.default.findOneAndUpdate({ _id: params.id }, { $unset: { first_visit: 1 } });
+            yield user.findOneAndUpdate({ _id: params.id }, { $unset: { first_visit: 1 } });
             res.send(User);
         }
         else {
@@ -210,7 +208,7 @@ router.post("/Getvideos", (req, res) => __awaiter(void 0, void 0, void 0, functi
     try {
         let videos = [];
         const params = req.body;
-        const User = yield userSchema_1.default.findOne({ _id: params.userid });
+        const User = yield user.findOne({ _id: params.userid });
         User.videos.map((video) => {
             // let pathToFile = path.join(__dirname, "../", video.video);
             let pathToSnapshot = path_1.default.join(__dirname, "../", video.video + "thumbnail.jpeg");
@@ -246,7 +244,7 @@ router.post("/Uploadvideo", upload("../Server/uploads/videos/", "uploadMedia").s
         require("child_process").exec("ffmpeg -i " + pathToFile + " -ss 00:00:02 -frames:v 1 " + pathToSnapshot, function () {
             console.log("Saved the thumb to:", pathToSnapshot);
         });
-        yield userSchema_1.default.updateOne({ _id: req.body.userid }, {
+        yield user.updateOne({ _id: req.body.userid }, {
             $push: {
                 videos: {
                     video: pathToFile,
@@ -268,7 +266,7 @@ router.post("/Uploadvideo", upload("../Server/uploads/videos/", "uploadMedia").s
 router.delete("/Deletevideo", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        yield userSchema_1.default.updateOne({ _id: params.userid }, {
+        yield user.updateOne({ _id: params.userid }, {
             $pull: {
                 videos: {
                     video: params.video,
@@ -289,7 +287,7 @@ router.delete("/Deletevideo", (req, res) => __awaiter(void 0, void 0, void 0, fu
 router.post("/Editvideo", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const User = yield userSchema_1.default.update({ _id: params.userid, "videos.video": params.video }, {
+        const User = yield user.update({ _id: params.userid, "videos.video": params.video }, {
             $set: {
                 "videos.$.title": params.title,
                 "videos.$.caption": params.caption,
@@ -310,7 +308,7 @@ router.post("/Getimages", (req, res) => __awaiter(void 0, void 0, void 0, functi
     try {
         let images = [];
         const params = req.body;
-        const User = yield userSchema_1.default.findOne({ _id: params.userid });
+        const User = yield user.findOne({ _id: params.userid });
         User.images.map((image) => {
             let pathToFile = path_1.default.join(__dirname, "../", image.image);
             let pathToSnapshot = path_1.default.join(__dirname, "../", image.image + "lowquality.jpeg");
@@ -342,7 +340,7 @@ router.post("/Getimages", (req, res) => __awaiter(void 0, void 0, void 0, functi
 router.delete("/Deleteimage", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        yield userSchema_1.default.updateOne({ _id: params.userid }, {
+        yield user.updateOne({ _id: params.userid }, {
             $pull: {
                 images: {
                     image: params.image,
@@ -362,7 +360,7 @@ router.delete("/Deleteimage", (req, res) => __awaiter(void 0, void 0, void 0, fu
 router.post("/Uploadimage", upload("../Server/uploads/images/", "uploadMedia").single("image"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let pathToFile = "uploads/images/" + req.file.originalname;
-        yield userSchema_1.default.updateOne({ _id: req.body.userid }, {
+        yield user.updateOne({ _id: req.body.userid }, {
             $push: {
                 images: {
                     image: pathToFile,
@@ -384,7 +382,7 @@ router.post("/Uploadimage", upload("../Server/uploads/images/", "uploadMedia").s
 router.post("/Editimage", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        yield userSchema_1.default.updateOne({ _id: params.userid, "images.image": params.image }, {
+        yield user.updateOne({ _id: params.userid, "images.image": params.image }, {
             $set: {
                 "images.$.title": params.title,
                 "images.$.caption": params.caption,
@@ -453,7 +451,7 @@ router.post("/registerApp", (req, res) => __awaiter(void 0, void 0, void 0, func
         let date = new Date().toLocaleDateString();
         let time = new Date().toLocaleTimeString();
         let finalDate = date + ", " + time;
-        const appExists = yield userSchema_1.default.findOne({
+        const appExists = yield user.findOne({
             _id: params.userid,
             "apps.appname": params.appname,
         });
@@ -463,7 +461,7 @@ router.post("/registerApp", (req, res) => __awaiter(void 0, void 0, void 0, func
             });
         }
         else {
-            yield userSchema_1.default.updateOne({ _id: params.userid }, {
+            yield user.updateOne({ _id: params.userid }, {
                 $push: {
                     apps: {
                         appname: params.appname,
@@ -486,7 +484,7 @@ router.post("/registerApp", (req, res) => __awaiter(void 0, void 0, void 0, func
 router.post("/getAllApps", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const appExists = yield userSchema_1.default.findOne({
+        const appExists = yield user.findOne({
             _id: params.userid,
         });
         if (appExists) {
@@ -501,7 +499,7 @@ router.post("/getAllApps", (req, res) => __awaiter(void 0, void 0, void 0, funct
 router.post("/getApp", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        let appExists = yield userSchema_1.default.find({ "apps.appname": params.appname }, {
+        let appExists = yield user.find({ "apps.appname": params.appname }, {
             _id: params.userid,
             apps: { $elemMatch: { appname: params.appname } },
         });
@@ -518,7 +516,7 @@ router.post("/getApp", (req, res) => __awaiter(void 0, void 0, void 0, function*
 router.delete("/deleteApp", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const appExists = yield userSchema_1.default.updateOne({
+        const appExists = yield user.updateOne({
             _id: params.userid,
         }, {
             $pull: {
@@ -550,7 +548,7 @@ router.post("/app/image/:apikey", upload("../Server/uploads/images/", "uploadMed
             return;
         }
         let key = uuid_apikey_1.default.toUUID(req.params.apikey);
-        const User = yield userSchema_1.default.updateOne({ "apps.key": key }, {
+        const User = yield user.updateOne({ "apps.key": key }, {
             $push: {
                 "apps.$.images": {
                     image: pathToFile,
@@ -579,7 +577,7 @@ router.delete("/app/image", (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const params = req.body;
         let key = uuid_apikey_1.default.toUUID(params.apikey);
-        const User = yield userSchema_1.default.updateOne({ "apps.key": key }, {
+        const User = yield user.updateOne({ "apps.key": key }, {
             $pull: {
                 "apps.$.images": {
                     image: params.image,
@@ -615,7 +613,7 @@ router.post("/app/video/:apikey", upload("../Server/uploads/videos/", "uploadMed
             return;
         }
         let key = uuid_apikey_1.default.toUUID(req.params.apikey);
-        const User = yield userSchema_1.default.updateOne({ "apps.key": key }, {
+        const User = yield user.updateOne({ "apps.key": key }, {
             $push: {
                 "apps.$.videos": {
                     video: pathToFile,
@@ -661,7 +659,7 @@ router.delete("/app/video", (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const params = req.body;
         let key = uuid_apikey_1.default.toUUID(params.apikey);
-        const User = yield userSchema_1.default.updateOne({ "apps.key": key }, {
+        const User = yield user.updateOne({ "apps.key": key }, {
             $pull: {
                 "apps.$.videos": {
                     video: params.video,
@@ -690,11 +688,11 @@ router.delete("/app/video", (req, res) => __awaiter(void 0, void 0, void 0, func
 router.post("/followUser", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const params = req.body;
-        const UserFound = yield userSchema_1.default.findOne({
+        const UserFound = yield user.findOne({
             _id: params.userid,
             "following.username": params.username,
         });
-        const CurrentUser = yield userSchema_1.default.findOne({
+        const CurrentUser = yield user.findOne({
             _id: params.userid,
         }, { username: 1 });
         if (UserFound) {
@@ -703,14 +701,14 @@ router.post("/followUser", (req, res) => __awaiter(void 0, void 0, void 0, funct
             });
         }
         else {
-            yield userSchema_1.default.updateOne({ _id: params.userid }, {
+            yield user.updateOne({ _id: params.userid }, {
                 $push: {
                     following: {
                         username: params.username,
                     },
                 },
             });
-            yield userSchema_1.default.updateOne({ username: params.username }, {
+            yield user.updateOne({ username: params.username }, {
                 $push: {
                     followers: {
                         username: CurrentUser.username,

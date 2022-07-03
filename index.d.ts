@@ -1,4 +1,5 @@
 import { Request, Response } from "express-serve-static-core";
+import { ModelStatic } from "sequelize";
 import ResponseHandler from "./Configs/ResponseHandler";
 
 declare module "express-serve-static-core" {
@@ -10,6 +11,11 @@ declare module "express-serve-static-core" {
 	}
 }
 
-export type DBModels = {
-	[key: string]: any;
+export interface ICustomModel extends ModelStatic<Model> {
+	associate?: (DBSchemas) => void;
+}
+
+export type DBSchemas = {
+	[Users: string]: ICustomModel;
+	[Tokens: string]: ICustomModel;
 };
