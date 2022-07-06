@@ -51,7 +51,6 @@ class AuthController {
 			}
 		} catch (error) {
 			console.log(error);
-
 			res.handler.serverError();
 		}
 	}
@@ -81,13 +80,19 @@ class AuthController {
 
 			const random = Math.floor(100000000 + Math.random() * 900000000);
 
-			const userCreated = await User.create({ username: params.username, email: params.email, password: params.password, otp: random });
+			const userCreated = await User.create({
+				username: params.username,
+				email: params.email,
+				password: params.password,
+				otp: random,
+				is_active: false,
+			});
 
 			if (userCreated) {
 				let emailSent = true;
 				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.id}`;
 
-				const callBack = async (error: Error | null, info: any) => {
+				const callBack = (error: Error | null, info: any) => {
 					if (error) {
 						console.log(error);
 
@@ -115,161 +120,161 @@ class AuthController {
 				res.handler.serverError();
 			}
 		} catch (error) {
+			console.log(error);
 			res.handler.serverError();
 		}
 	}
 
-	async verifyEmail(req, res) {
+	async verifyEmail(req: Request, res: Response) {
 		try {
-			const userFound = await User.findOne({ _id: req.query.userid });
+			if (!req.query.l2 || !req.query.l1) {
+				res.handler.validationError();
+				return;
+			}
 
-			if (userFound) {
-				if (userFound.verified) {
-					res.sendFile(path.resolve("views/alreadyVerified.html"));
+			const userFound = await User.findOne({ where: { id: req.query.l2 } });
+
+			if (!userFound) {
+				res.handler.notFound({}, "User not found");
+				return;
+			}
+
+			if (userFound.is_active) {
+				res.sendFile(path.resolve("views/alreadyVerified.html"));
+				return;
+			}
+
+			if (req.query.l1 == userFound.otp) {
+				const updated = await User.update({ is_active: true, otp: null }, { where: { id: req.query.l2 } });
+
+				if (updated) {
+					res.sendFile(path.resolve("views/verifyEmail.html"));
 				} else {
-					if (parseInt(req.query.id) === userFound.verify_id) {
-						const updated = await User.updateOne({ _id: req.query.userid }, { verified: 1, $unset: { verify_id: 1 } });
-
-						if (updated) {
-							res.sendFile(path.resolve("views/verifyEmail.html"));
-						} else {
-							res.status(400).send("Incorrect credentials");
-						}
-					} else {
-						res.status(400).send("Incorrect credentials");
-					}
+					res.handler.notFound({}, "Incorrect credentials");
 				}
 			} else {
-				res.status(404).send("User not found");
+				res.handler.notFound({}, "Incorrect credentials");
 			}
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 
-	async resendVerifyEmail(req, res) {
+	async resendVerifyEmail(req: Request, res: Response) {
 		try {
-			const params = req.body;
+			const random = Math.floor(100000000 + Math.random() * 900000000);
+			const userUpdated = await User.update({ otp: random }, { where: { email: req.body.email }, returning: true });
 
-			const emailExists = await User.findOne({ email: params.email });
+			if (!userUpdated[0]) {
+				res.handler.notFound({}, "Email not found!");
+				return;
+			}
 
-			if (emailExists) {
-				const random = Math.floor(100000000 + Math.random() * 900000000);
+			let emailSent = true;
+			const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].id}`;
 
-				const userUpdated = await User.updateOne({ email: params.email }, { verify_id: random });
-
-				if (userUpdated) {
-					const link = `${req.protocol}://${req.get("host")}/auth/verify-email?id=${random}&userid=${userUpdated._id}`;
-
-					const mailSent = sendEmail(
-						params.email,
-						"Confirm Email",
-						`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`
-					);
-
-					if (mailSent) {
-						res.handler.success(res, {}, `Email sent`);
+			Mailer(
+				req.body.email,
+				"Confirm Email",
+				`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`,
+				(error: Error | null, info: any) => {
+					if (error) {
+						console.log(error);
+						emailSent = false;
 					} else {
-						res.handler.fail(res, 400, {}, "Something went wrong");
+						emailSent = true;
 					}
 				}
+			);
+
+			if (emailSent) {
+				res.handler.success({}, "Email sent");
 			} else {
-				res.handler.fail(res, 409, {}, "Email not found!");
+				res.handler.serverError({}, "Cannot send email!");
 			}
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 
-	async sendForgotPassEmail(req, res) {
+	async sendForgotPassEmail(req: Request, res: Response) {
 		try {
-			const params = req.body;
+			const random = Math.floor(100000000 + Math.random() * 900000000);
+			const userUpdated = await User.update({ otp: random }, { where: { email: req.body.email } });
 
-			const emailExists = await User.findOne({ email: params.email });
-
-			if (emailExists) {
-				const random = Math.floor(100000000 + Math.random() * 900000000);
-
-				const userUpdated = await User.updateOne({ email: params.email }, { otp: random });
-
-				if (userUpdated) {
-					let emailSent = true;
-
-					const callBack = async (error, info) => {
-						if (error) {
-							console.log(error);
-
-							emailSent = false;
-						} else {
-							emailSent = true;
-						}
-					};
-
-					sendEmail(params.email, "Forgot Password", `${random} is OTP for resetting password.`, callBack);
-
-					if (emailSent) {
-						res.handler.success(res, {}, `Email sent`);
-					} else {
-						res.handler.fail(res, 400, {}, "Cannot send email!");
-					}
-				}
-			} else {
-				res.handler.fail(res, 409, {}, "Email not found!");
+			if (!userUpdated[0]) {
+				res.handler.notFound({}, "Email not found!");
+				return;
 			}
-		} catch (error) {
-			res.handler.serverError(res, error);
-		}
-	}
 
-	async verifyOtp(req, res) {
-		try {
-			const params = req.body;
+			let emailSent = true;
 
-			const emailExists = await User.findOne({ email: params.email });
-
-			if (emailExists) {
-				const otpCorrect = await User.findOne({ email: params.email, otp: params.otp });
-
-				if (otpCorrect) {
-					res.handler.success(res, {}, `Otp verified`);
+			Mailer(req.body.email, "Forgot Password", `${random} is OTP for resetting password.`, (error: Error | null, info: any) => {
+				if (error) {
+					console.log(error);
+					emailSent = false;
 				} else {
-					res.handler.fail(res, 409, {}, `Incorrect otp`);
+					emailSent = true;
 				}
+			});
+
+			if (emailSent) {
+				res.handler.success({}, "Email sent");
 			} else {
-				res.handler.fail(res, 409, {}, "Email not found!");
+				res.handler.serverError({}, "Cannot send email!");
 			}
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 
-	async forgotPassword(req, res) {
+	async verifyOtp(req: Request, res: Response) {
 		try {
-			const params = req.body;
+			const details = await User.findOne({ where: { email: req.body.email, otp: req.body.otp } });
 
-			const userUpdated = await User.findOneAndUpdate({ email: params.email }, { $set: { password: params.password }, $unset: { otp: 1 } });
-
-			if (userUpdated) {
-				res.handler.success(res, {}, "Password Changed");
-			} else {
-				res.handler.fail(res, 409, {}, "Something went wrong!");
+			if (!details) {
+				res.handler.notFound();
+				return;
 			}
+
+			res.handler.success({}, "Otp verified");
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 
-	async resetPassword(req, res) {
+	async forgotPassword(req: Request, res: Response) {
 		try {
+			const userUpdated = await User.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } });
+
+			if (!userUpdated[0]) {
+				res.handler.notFound({}, "Something went wrong!");
+			}
+
+			res.handler.success({}, "Password updated");
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 
-	async logOut(req, res) {
+	async resetPassword(req: Request, res: Response) {
 		try {
 		} catch (error) {
-			res.handler.serverError(res, error);
+			console.log(error);
+			res.handler.serverError();
+		}
+	}
+
+	async logOut(req: Request, res: Response) {
+		try {
+		} catch (error) {
+			console.log(error);
+			res.handler.serverError();
 		}
 	}
 }

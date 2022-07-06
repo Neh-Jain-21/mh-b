@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const path_1 = __importDefault(require("path"));
 const sequelize_1 = require("sequelize");
+// CONFIGS
+const Mailer_1 = __importDefault(require("../Configs/Mailer"));
 // SCHEMAS
 const Schemas_1 = __importDefault(require("../Schemas"));
 const User = Schemas_1.default.Users;
@@ -57,6 +59,7 @@ class AuthController {
                 }
             }
             catch (error) {
+                console.log(error);
                 res.handler.serverError();
             }
         });
@@ -75,11 +78,11 @@ class AuthController {
                 });
                 if (alreadyExists) {
                     if (alreadyExists.email === params.email) {
-                        res.handler.conflict({}, "Email already Exists");
+                        res.handler.conflict({}, "Email already taken");
                         return;
                     }
                     else {
-                        res.handler.conflict({}, "Username already Exists");
+                        res.handler.conflict({}, "Username already taken");
                         return;
                     }
                 }
@@ -88,12 +91,13 @@ class AuthController {
                     username: params.username,
                     email: params.email,
                     password: params.password,
-                    verify_id: random,
+                    otp: random,
+                    is_active: false,
                 });
                 if (userCreated) {
-                    const link = `${req.protocol}://${req.get("host")}/auth/verify-email?id=${random}&userid=${userCreated._id}`;
                     let emailSent = true;
-                    const callBack = (error, info) => __awaiter(this, void 0, void 0, function* () {
+                    const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.id}`;
+                    const callBack = (error, info) => {
                         if (error) {
                             console.log(error);
                             emailSent = false;
@@ -101,159 +105,154 @@ class AuthController {
                         else {
                             emailSent = true;
                         }
-                    });
-                    sendEmail(params.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, callBack);
+                    };
+                    (0, Mailer_1.default)(params.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, callBack);
                     if (emailSent) {
-                        res.handler.success(res, {}, `Welcome! Please verify your email`);
+                        res.handler.success({}, `Welcome! Please verify your email`);
                     }
                     else {
-                        yield User.deleteOne({ _id: userCreated._id });
-                        res.handler.fail(res, 400, {}, "Cannot send email!");
+                        yield User.destroy({ where: { id: userCreated.id } });
+                        res.handler.serverError({}, "Cannot send email!");
                     }
                 }
                 else {
-                    res.handler.fail(res, 400, {}, "Something went wrong");
+                    res.handler.serverError();
                 }
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
     verifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const userFound = yield User.findOne({ _id: req.query.userid });
-                if (userFound) {
-                    if (userFound.verified) {
-                        res.sendFile(path_1.default.resolve("views/alreadyVerified.html"));
+                if (!req.query.l2 || !req.query.l1) {
+                    res.handler.validationError();
+                    return;
+                }
+                const userFound = yield User.findOne({ where: { id: req.query.l2 } });
+                if (!userFound) {
+                    res.handler.notFound({}, "User not found");
+                    return;
+                }
+                if (userFound.is_active) {
+                    res.sendFile(path_1.default.resolve("views/alreadyVerified.html"));
+                    return;
+                }
+                if (req.query.l1 == userFound.otp) {
+                    const updated = yield User.update({ is_active: true, otp: null }, { where: { id: req.query.l2 } });
+                    if (updated) {
+                        res.sendFile(path_1.default.resolve("views/verifyEmail.html"));
                     }
                     else {
-                        if (parseInt(req.query.id) === userFound.verify_id) {
-                            const updated = yield User.updateOne({ _id: req.query.userid }, { verified: 1, $unset: { verify_id: 1 } });
-                            if (updated) {
-                                res.sendFile(path_1.default.resolve("views/verifyEmail.html"));
-                            }
-                            else {
-                                res.status(400).send("Incorrect credentials");
-                            }
-                        }
-                        else {
-                            res.status(400).send("Incorrect credentials");
-                        }
+                        res.handler.notFound({}, "Incorrect credentials");
                     }
                 }
                 else {
-                    res.status(404).send("User not found");
+                    res.handler.notFound({}, "Incorrect credentials");
                 }
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
     resendVerifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const params = req.body;
-                const emailExists = yield User.findOne({ email: params.email });
-                if (emailExists) {
-                    const random = Math.floor(100000000 + Math.random() * 900000000);
-                    const userUpdated = yield User.updateOne({ email: params.email }, { verify_id: random });
-                    if (userUpdated) {
-                        const link = `${req.protocol}://${req.get("host")}/auth/verify-email?id=${random}&userid=${userUpdated._id}`;
-                        const mailSent = sendEmail(params.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`);
-                        if (mailSent) {
-                            res.handler.success(res, {}, `Email sent`);
-                        }
-                        else {
-                            res.handler.fail(res, 400, {}, "Something went wrong");
-                        }
+                const random = Math.floor(100000000 + Math.random() * 900000000);
+                const userUpdated = yield User.update({ otp: random }, { where: { email: req.body.email }, returning: true });
+                if (!userUpdated[0]) {
+                    res.handler.notFound({}, "Email not found!");
+                    return;
+                }
+                let emailSent = true;
+                const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].id}`;
+                (0, Mailer_1.default)(req.body.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, (error, info) => {
+                    if (error) {
+                        console.log(error);
+                        emailSent = false;
                     }
+                    else {
+                        emailSent = true;
+                    }
+                });
+                if (emailSent) {
+                    res.handler.success({}, "Email sent");
                 }
                 else {
-                    res.handler.fail(res, 409, {}, "Email not found!");
+                    res.handler.serverError({}, "Cannot send email!");
                 }
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
     sendForgotPassEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const params = req.body;
-                const emailExists = yield User.findOne({ email: params.email });
-                if (emailExists) {
-                    const random = Math.floor(100000000 + Math.random() * 900000000);
-                    const userUpdated = yield User.updateOne({ email: params.email }, { otp: random });
-                    if (userUpdated) {
-                        let emailSent = true;
-                        const callBack = (error, info) => __awaiter(this, void 0, void 0, function* () {
-                            if (error) {
-                                console.log(error);
-                                emailSent = false;
-                            }
-                            else {
-                                emailSent = true;
-                            }
-                        });
-                        sendEmail(params.email, "Forgot Password", `${random} is OTP for resetting password.`, callBack);
-                        if (emailSent) {
-                            res.handler.success(res, {}, `Email sent`);
-                        }
-                        else {
-                            res.handler.fail(res, 400, {}, "Cannot send email!");
-                        }
+                const random = Math.floor(100000000 + Math.random() * 900000000);
+                const userUpdated = yield User.update({ otp: random }, { where: { email: req.body.email } });
+                if (!userUpdated[0]) {
+                    res.handler.notFound({}, "Email not found!");
+                    return;
+                }
+                let emailSent = true;
+                (0, Mailer_1.default)(req.body.email, "Forgot Password", `${random} is OTP for resetting password.`, (error, info) => {
+                    if (error) {
+                        console.log(error);
+                        emailSent = false;
                     }
+                    else {
+                        emailSent = true;
+                    }
+                });
+                if (emailSent) {
+                    res.handler.success({}, "Email sent");
                 }
                 else {
-                    res.handler.fail(res, 409, {}, "Email not found!");
+                    res.handler.serverError({}, "Cannot send email!");
                 }
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
     verifyOtp(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const params = req.body;
-                const emailExists = yield User.findOne({ email: params.email });
-                if (emailExists) {
-                    const otpCorrect = yield User.findOne({ email: params.email, otp: params.otp });
-                    if (otpCorrect) {
-                        res.handler.success(res, {}, `Otp verified`);
-                    }
-                    else {
-                        res.handler.fail(res, 409, {}, `Incorrect otp`);
-                    }
+                const details = yield User.findOne({ where: { email: req.body.email, otp: req.body.otp } });
+                if (!details) {
+                    res.handler.notFound();
+                    return;
                 }
-                else {
-                    res.handler.fail(res, 409, {}, "Email not found!");
-                }
+                res.handler.success({}, "Otp verified");
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
     forgotPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const params = req.body;
-                const userUpdated = yield User.findOneAndUpdate({ email: params.email }, { $set: { password: params.password }, $unset: { otp: 1 } });
-                if (userUpdated) {
-                    res.handler.success(res, {}, "Password Changed");
+                const userUpdated = yield User.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } });
+                if (!userUpdated[0]) {
+                    res.handler.notFound({}, "Something went wrong!");
                 }
-                else {
-                    res.handler.fail(res, 409, {}, "Something went wrong!");
-                }
+                res.handler.success({}, "Password updated");
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
@@ -262,7 +261,8 @@ class AuthController {
             try {
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
@@ -271,7 +271,8 @@ class AuthController {
             try {
             }
             catch (error) {
-                res.handler.serverError(res, error);
+                console.log(error);
+                res.handler.serverError();
             }
         });
     }
