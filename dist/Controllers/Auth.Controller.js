@@ -68,6 +68,10 @@ class AuthController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const params = req.body;
+                if (!params.email || !params.username || !params.password) {
+                    res.handler.validationError({});
+                    return;
+                }
                 const alreadyExists = yield User.findOne({
                     where: {
                         [sequelize_1.Op.or]: {

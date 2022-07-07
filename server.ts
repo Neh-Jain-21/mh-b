@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import http from "http";
 import https from "https";
+import localtunnel from "localtunnel";
 // CONFIGS
 import ResponseHandler from "./Configs/ResponseHandler";
 // PARSE ENV
@@ -11,7 +12,7 @@ dotenv.config();
 import "./Configs/Database";
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || (8000).toString();
 
 // CHECK WHICH PROTOCOL TO USE
 const SHOULD_RUN_ON_HTTP = process.env.SHOULD_RUN_ON_HTTP;
@@ -41,4 +42,13 @@ import Routes from "./Routes";
 Routes(app);
 
 // --------------------------    START SERVER    ---------------------
-server.listen(port, () => console.log(`\nServer started on ${port} :)`));
+server.listen(port, () => {
+	// START ON PUBLIC NETWORK
+	(async () => {
+		const tunnel = await localtunnel({ port: parseInt(port), subdomain: process.env.APP_NAME });
+
+		console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
+		console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
+		console.log(` Public:\t ${tunnel.url}\n`);
+	})();
+});

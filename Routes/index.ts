@@ -1,11 +1,12 @@
 import { Express } from "express";
+import Auth from "./Auth";
 
 const Routes = (app: Express) => {
 	app.get("/", (req, res) => {
-		res.handler.success();
+		res.render("MediaHost");
 	});
 
-	app.use("/auth", require("./Auth"));
+	app.use("/auth", Auth);
 };
 
 export default Routes;

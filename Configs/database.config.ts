@@ -8,4 +8,7 @@ export const DBConfig: { [key: string]: any } = {
 	production: DB_CREDENTIAL,
 };
 
-module.exports = DBConfig;
+console.log(DBConfig.development);
+
+// module.exports = DBConfig;
+export default DBConfig;

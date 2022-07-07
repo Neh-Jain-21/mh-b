@@ -8,6 +8,7 @@ import Multer from "../Configs/Multer";
 import { Request, Response } from "express";
 // SCHEMAS
 import Schemas from "../Schemas";
+
 const User = Schemas.Users;
 const Token = Schemas.Tokens;
 
@@ -58,6 +59,11 @@ class AuthController {
 	async signUp(req: Request, res: Response) {
 		try {
 			const params = req.body;
+
+			if (!params.email || !params.username || !params.password) {
+				res.handler.validationError({});
+				return;
+			}
 
 			const alreadyExists = await User.findOne({
 				where: {

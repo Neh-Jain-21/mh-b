@@ -12,4 +12,6 @@ exports.DBConfig = {
     test: Constants_1.DB_CREDENTIAL,
     production: Constants_1.DB_CREDENTIAL,
 };
-module.exports = exports.DBConfig;
+console.log(exports.DBConfig.development);
+// module.exports = DBConfig;
+exports.default = exports.DBConfig;
