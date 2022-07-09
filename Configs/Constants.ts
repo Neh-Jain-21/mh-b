@@ -1,4 +1,5 @@
-import { Dialect } from "sequelize/types";
+import dotenv from "dotenv";
+const env = dotenv.config();
 
 export const STATUS_CODES = {
     // 1XX INFORMATIONAL
@@ -76,16 +77,16 @@ export const STATUS_CODES = {
 }
 
 export const DB_CREDENTIAL = {
-    host      : process.env.DB_HOST,
-    database  : process.env.DB_DATABASE,
-    username  : process.env.DB_USERNAME,
-    password  : process.env.DB_PASSWORD,
-    dialect   : process.env.DB_DIALECT,
-    dialectOptions: {
-        ssl: {
-            require             : true,
-            rejectUnauthorized  : false,
-        },
-    },
+    host      : env.parsed?.DB_HOST,
+    database  : env.parsed?.DB_DATABASE,
+    username  : env.parsed?.DB_USERNAME,
+    password  : env.parsed?.DB_PASSWORD,
+    dialect   : env.parsed?.DB_DIALECT,
+    // dialectOptions: {
+    //     ssl: {
+    //         require             : true,
+    //         rejectUnauthorized  : false,
+    //     },
+    // },
     logging   : false
 }

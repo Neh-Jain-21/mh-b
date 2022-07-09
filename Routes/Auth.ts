@@ -13,4 +13,4 @@ router.post("/send-forgotpass-email", Auth.sendForgotPassEmail);
 router.post("/verify-otp", Auth.verifyOtp);
 router.post("/forgotpass", Auth.forgotPassword);
 
-export default router;
+export = router;

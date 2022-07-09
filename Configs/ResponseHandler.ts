@@ -137,4 +137,4 @@ class ResponseHandler {
 	}
 }
 
-export default ResponseHandler;
+export = ResponseHandler;

@@ -2,7 +2,6 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const Mailer = (to, subject, html, callBack) => {
     // SET MAIL TRANSPORTER
@@ -16,4 +15,4 @@ const Mailer = (to, subject, html, callBack) => {
     const mailOptions = { from: `"MediaHost" <${process.env.EMAIL}>`, to, subject, html };
     transporter.sendMail(mailOptions, callBack);
 };
-exports.default = Mailer;
+module.exports = Mailer;

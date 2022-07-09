@@ -1,10 +1,8 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-exports.default = (sequelize, DataTypes) => {
+module.exports = (sequelize, DataTypes) => {
     class Tokens extends sequelize_1.Model {
         static associate(models) {
-            console.log(models);
             Tokens.belongsTo(models.Users);
         }
     }

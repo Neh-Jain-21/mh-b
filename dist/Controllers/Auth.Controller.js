@@ -11,12 +11,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const path_1 = __importDefault(require("path"));
 const sequelize_1 = require("sequelize");
 // CONFIGS
 const Mailer_1 = __importDefault(require("../Configs/Mailer"));
+const Encrypt_1 = __importDefault(require("../Configs/Encrypt"));
 // SCHEMAS
 const Schemas_1 = __importDefault(require("../Schemas"));
 const User = Schemas_1.default.Users;
@@ -91,10 +91,11 @@ class AuthController {
                     }
                 }
                 const random = Math.floor(100000000 + Math.random() * 900000000);
+                const encryptedPassword = yield Encrypt_1.default.cryptPassword(params.password);
                 const userCreated = yield User.create({
                     username: params.username,
                     email: params.email,
-                    password: params.password,
+                    password: encryptedPassword,
                     otp: random,
                     is_active: false,
                 });
@@ -281,4 +282,4 @@ class AuthController {
         });
     }
 }
-exports.default = AuthController;
+module.exports = AuthController;

@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const Constants_1 = require("./Constants");
 class ResponseHandler {
     constructor(req, res) {
@@ -119,4 +118,4 @@ class ResponseHandler {
         this.sender(Constants_1.STATUS_CODES.SERVER_ERROR, message || "Internal Server Error!", data, logging);
     }
 }
-exports.default = ResponseHandler;
+module.exports = ResponseHandler;

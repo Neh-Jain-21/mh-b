@@ -34,4 +34,4 @@ const Multer = (storagePath: string, type: fileType) => {
 	return multer({ storage: storageCover });
 };
 
-export default Multer;
+export = Multer;

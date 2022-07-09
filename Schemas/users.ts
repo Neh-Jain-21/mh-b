@@ -3,7 +3,7 @@
 import { Model, Sequelize, DataTypes as DataTypesType } from "sequelize";
 import { DBSchemas } from "..";
 
-export default (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
+export = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 	class Users extends Model {
 		static associate(models: DBSchemas) {
 			Users.hasMany(models.Tokens, {

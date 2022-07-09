@@ -1,6 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var _a, _b, _c, _d, _e;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DB_CREDENTIAL = exports.STATUS_CODES = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
+const env = dotenv_1.default.config();
 exports.STATUS_CODES = {
     // 1XX INFORMATIONAL
     CONTINUE: 100,
@@ -72,16 +78,16 @@ exports.STATUS_CODES = {
     NETWORK_AUTHENTICATION_REQUIRED: 511
 };
 exports.DB_CREDENTIAL = {
-    host: process.env.DB_HOST,
-    database: process.env.DB_DATABASE,
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    dialect: process.env.DB_DIALECT,
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false,
-        },
-    },
+    host: (_a = env.parsed) === null || _a === void 0 ? void 0 : _a.DB_HOST,
+    database: (_b = env.parsed) === null || _b === void 0 ? void 0 : _b.DB_DATABASE,
+    username: (_c = env.parsed) === null || _c === void 0 ? void 0 : _c.DB_USERNAME,
+    password: (_d = env.parsed) === null || _d === void 0 ? void 0 : _d.DB_PASSWORD,
+    dialect: (_e = env.parsed) === null || _e === void 0 ? void 0 : _e.DB_DIALECT,
+    // dialectOptions: {
+    //     ssl: {
+    //         require             : true,
+    //         rejectUnauthorized  : false,
+    //     },
+    // },
     logging: false
 };

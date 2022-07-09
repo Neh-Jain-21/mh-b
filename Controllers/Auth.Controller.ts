@@ -3,7 +3,7 @@ import path from "path";
 import { Op } from "sequelize";
 // CONFIGS
 import Mailer from "../Configs/Mailer";
-import Multer from "../Configs/Multer";
+import Encrypt from "../Configs/Encrypt";
 // TYPES
 import { Request, Response } from "express";
 // SCHEMAS
@@ -85,11 +85,12 @@ class AuthController {
 			}
 
 			const random = Math.floor(100000000 + Math.random() * 900000000);
+			const encryptedPassword = await Encrypt.cryptPassword(params.password);
 
 			const userCreated = await User.create({
 				username: params.username,
 				email: params.email,
-				password: params.password,
+				password: encryptedPassword,
 				otp: random,
 				is_active: false,
 			});
@@ -285,4 +286,4 @@ class AuthController {
 	}
 }
 
-export default AuthController;
+export = AuthController;

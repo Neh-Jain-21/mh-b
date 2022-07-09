@@ -15,4 +15,4 @@ const Mailer = (to: string, subject: string, html: any, callBack: (err: Error | 
 	transporter.sendMail(mailOptions, callBack);
 };
 
-export default Mailer;
+export = Mailer;

@@ -1,7 +1,6 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-exports.default = (sequelize, DataTypes) => {
+module.exports = (sequelize, DataTypes) => {
     class Users extends sequelize_1.Model {
         static associate(models) {
             Users.hasMany(models.Tokens, {

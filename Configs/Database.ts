@@ -5,12 +5,12 @@ if (process.env.DB_DATABASE && process.env.DB_USERNAME && process.env.DB_PASSWOR
 		host: process.env.DB_HOST,
 		dialect: "postgres",
 		logging: false,
-		dialectOptions: {
-			ssl: {
-				require: true,
-				rejectUnauthorized: false,
-			},
-		},
+		// dialectOptions: {
+		// 	ssl: {
+		// 		require: true,
+		// 		rejectUnauthorized: false,
+		// 	},
+		// },
 	});
 
 	sequelize

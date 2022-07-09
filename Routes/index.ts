@@ -9,4 +9,4 @@ const Routes = (app: Express) => {
 	app.use("/auth", Auth);
 };
 
-export default Routes;
+export = Routes;

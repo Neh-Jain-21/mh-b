@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { Sequelize, DataTypes } from "sequelize";
 // DB CONFIG
-import { DBConfig } from "../Configs/database.config";
+import DBConfig from "../Configs/database.config";
 // TYPES
 import { ICustomModel, DBSchemas } from "..";
 
@@ -33,4 +33,4 @@ if (config.database && config.username && config.password) {
 	});
 }
 
-export default db;
+export = db;
