@@ -1,5 +1,3 @@
-"use strict";
-
 import fs from "fs";
 import path from "path";
 import { Sequelize, DataTypes } from "sequelize";
@@ -22,12 +20,15 @@ if (config.database && config.username && config.password) {
 			return file.indexOf(".") !== 0 && file !== basename && file.slice(-3) === ".js";
 		})
 		.forEach((file) => {
-			const model: ICustomModel = require(path.join(__dirname, file))(sequelize, DataTypes);
-			db[model.name] = model;
+			const model: { default: (sequelize: Sequelize, dataTypes: typeof DataTypes) => ICustomModel } = require(path.join(__dirname, file));
+			// @ts-ignore
+			db[model.default.name] = model.default(sequelize, DataTypes);
 		});
 
 	Object.keys(db).forEach((modelName) => {
+		// @ts-ignore
 		if (db[modelName].associate) {
+			// @ts-ignore
 			db[modelName].associate?.(db);
 		}
 	});

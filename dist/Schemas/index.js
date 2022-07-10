@@ -18,12 +18,15 @@ if (config.database && config.username && config.password) {
         return file.indexOf(".") !== 0 && file !== basename && file.slice(-3) === ".js";
     })
         .forEach((file) => {
-        const model = require(path_1.default.join(__dirname, file))(sequelize, sequelize_1.DataTypes);
-        db[model.name] = model;
+        const model = require(path_1.default.join(__dirname, file));
+        // @ts-ignore
+        db[model.default.name] = model.default(sequelize, sequelize_1.DataTypes);
     });
     Object.keys(db).forEach((modelName) => {
         var _a, _b;
+        // @ts-ignore
         if (db[modelName].associate) {
+            // @ts-ignore
             (_b = (_a = db[modelName]).associate) === null || _b === void 0 ? void 0 : _b.call(_a, db);
         }
     });

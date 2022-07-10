@@ -1,15 +1,21 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-module.exports = (sequelize, DataTypes) => {
+const UserSchema = (sequelize, DataTypes) => {
     class Users extends sequelize_1.Model {
         static associate(models) {
-            Users.hasMany(models.Tokens, {
-                foreignKey: "user_id",
-                onDelete: "CASCADE",
-            });
+            models.TokenSchema &&
+                Users.hasMany(models.TokenSchema, {
+                    foreignKey: "user_id",
+                    onDelete: "CASCADE",
+                });
         }
     }
     Users.init({
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+        },
         username: DataTypes.STRING,
         email: DataTypes.STRING,
         password: DataTypes.STRING,
@@ -30,3 +36,4 @@ module.exports = (sequelize, DataTypes) => {
     });
     return Users;
 };
+exports.default = UserSchema;

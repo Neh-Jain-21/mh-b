@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
 import path from "path";
+import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
 // CONFIGS
 import Mailer from "../Configs/Mailer";
@@ -9,44 +9,53 @@ import { Request, Response } from "express";
 // SCHEMAS
 import Schemas from "../Schemas";
 
-const User = Schemas.Users;
-const Token = Schemas.Tokens;
+const User = Schemas.UserSchema;
+const Token = Schemas.TokenSchema;
 
 class AuthController {
 	async logIn(req: Request, res: Response) {
 		try {
 			const params = req.body;
+
+			if (!params.username || !params.password) {
+				res.handler.validationError({});
+				return;
+			}
+
 			let userFound = null;
 
 			if (params.username.includes("@")) {
-				userFound = await User.findOne({
-					attributes: ["id", "is_active", "username"],
-					where: { email: params.username, password: params.password },
+				userFound = await User?.findOne({
+					attributes: ["id", "is_active", "username", "password"],
+					where: { email: params.username },
 				});
 			} else {
-				userFound = await User.findOne({
-					attributes: ["id", "is_active", "username"],
-					where: { username: params.username, password: params.password },
+				userFound = await User?.findOne({
+					attributes: ["id", "is_active", "username", "password"],
+					where: { username: params.username },
 				});
 			}
 
-			if (!userFound) {
+			if (!userFound || (userFound && !(await Encrypt.comparePassword(params.password, userFound.getDataValue("password"))))) {
 				res.handler.validationError({}, "Email, username or password invalid");
 				return;
 			}
 
-			if (userFound.is_active && process.env.JWT_SECRET) {
-				const token = jwt.sign({ id: userFound.id }, process.env.JWT_SECRET);
+			if (userFound.getDataValue("is_active") && process.env.JWT_SECRET) {
+				const token = jwt.sign({ id: userFound.getDataValue("id") }, process.env.JWT_SECRET);
 
-				const tokenAvailable = await Token.findOne({ attributes: ["id"], where: { user_id: userFound.id } });
+				const tokenAvailable = await Token?.findOne({ attributes: ["id"], where: { user_id: userFound.getDataValue("id") } });
 
 				if (tokenAvailable) {
-					await Token.update({ token }, { where: { user_id: userFound.id } });
+					await Token?.update({ token }, { where: { user_id: userFound.getDataValue("id") } });
 				} else {
-					await Token.create({ user_id: userFound.id, auth_token: token });
+					await Token?.create({ user_id: userFound.getDataValue("id"), token });
 				}
 
-				res.handler.success({ token, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
+				res.handler.success(
+					{ token, username: userFound.getDataValue("username") },
+					`Login Succesfull, Welcome ${userFound.getDataValue("username")}`
+				);
 			} else {
 				res.handler.notAllowed({}, "Please verify email first");
 			}
@@ -65,7 +74,7 @@ class AuthController {
 				return;
 			}
 
-			const alreadyExists = await User.findOne({
+			const alreadyExists = await User?.findOne({
 				where: {
 					[Op.or]: {
 						email: params.email,
@@ -75,7 +84,7 @@ class AuthController {
 			});
 
 			if (alreadyExists) {
-				if (alreadyExists.email === params.email) {
+				if (alreadyExists.getDataValue("email") === params.email) {
 					res.handler.conflict({}, "Email already taken");
 					return;
 				} else {
@@ -87,17 +96,17 @@ class AuthController {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
 			const encryptedPassword = await Encrypt.cryptPassword(params.password);
 
-			const userCreated = await User.create({
+			const userCreated = await User?.create({
 				username: params.username,
 				email: params.email,
 				password: encryptedPassword,
-				otp: random,
+				otp: random.toString(),
 				is_active: false,
 			});
 
 			if (userCreated) {
 				let emailSent = true;
-				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.id}`;
+				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.getDataValue("id")}`;
 
 				const callBack = (error: Error | null, info: any) => {
 					if (error) {
@@ -119,7 +128,7 @@ class AuthController {
 				if (emailSent) {
 					res.handler.success({}, `Welcome! Please verify your email`);
 				} else {
-					await User.destroy({ where: { id: userCreated.id } });
+					await User?.destroy({ where: { id: userCreated.getDataValue("id") } });
 
 					res.handler.serverError({}, "Cannot send email!");
 				}
@@ -139,20 +148,23 @@ class AuthController {
 				return;
 			}
 
-			const userFound = await User.findOne({ where: { id: req.query.l2 } });
+			const userFound = await User?.findOne({ where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } });
 
 			if (!userFound) {
 				res.handler.notFound({}, "User not found");
 				return;
 			}
 
-			if (userFound.is_active) {
+			if (userFound.getDataValue("is_active")) {
 				res.sendFile(path.resolve("views/alreadyVerified.html"));
 				return;
 			}
 
-			if (req.query.l1 == userFound.otp) {
-				const updated = await User.update({ is_active: true, otp: null }, { where: { id: req.query.l2 } });
+			if (req.query.l1 == userFound.getDataValue("otp")) {
+				const updated = await User?.update(
+					{ is_active: true, otp: null },
+					{ where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } }
+				);
 
 				if (updated) {
 					res.sendFile(path.resolve("views/verifyEmail.html"));
@@ -171,15 +183,16 @@ class AuthController {
 	async resendVerifyEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
-			const userUpdated = await User.update({ otp: random }, { where: { email: req.body.email }, returning: true });
+			const userUpdated = await User?.update({ otp: random.toString() }, { where: { email: req.body.email }, returning: true });
 
-			if (!userUpdated[0]) {
+			if (userUpdated && !userUpdated[0]) {
 				res.handler.notFound({}, "Email not found!");
 				return;
 			}
 
 			let emailSent = true;
-			const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].id}`;
+			const link =
+				userUpdated && `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].getDataValue("id")}`;
 
 			Mailer(
 				req.body.email,
@@ -209,9 +222,9 @@ class AuthController {
 	async sendForgotPassEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
-			const userUpdated = await User.update({ otp: random }, { where: { email: req.body.email } });
+			const userUpdated = await User?.update({ otp: random.toString() }, { where: { email: req.body.email } });
 
-			if (!userUpdated[0]) {
+			if (userUpdated && !userUpdated[0]) {
 				res.handler.notFound({}, "Email not found!");
 				return;
 			}
@@ -240,7 +253,7 @@ class AuthController {
 
 	async verifyOtp(req: Request, res: Response) {
 		try {
-			const details = await User.findOne({ where: { email: req.body.email, otp: req.body.otp } });
+			const details = await User?.findOne({ where: { email: req.body.email, otp: req.body.otp } });
 
 			if (!details) {
 				res.handler.notFound();
@@ -256,9 +269,9 @@ class AuthController {
 
 	async forgotPassword(req: Request, res: Response) {
 		try {
-			const userUpdated = await User.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } });
+			const userUpdated = await User?.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } });
 
-			if (!userUpdated[0]) {
+			if (userUpdated && !userUpdated[0]) {
 				res.handler.notFound({}, "Something went wrong!");
 			}
 
@@ -279,6 +292,9 @@ class AuthController {
 
 	async logOut(req: Request, res: Response) {
 		try {
+			const loggedOut = await Token?.destroy({ where: { user_id: req.user.id } });
+
+			loggedOut ? res.handler.success({}, "Logged out") : res.handler.serverError();
 		} catch (error) {
 			console.log(error);
 			res.handler.serverError();

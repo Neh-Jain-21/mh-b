@@ -1,17 +1,31 @@
-"use strict";
-
-import { Model, Sequelize, DataTypes as DataTypesType } from "sequelize";
+import { Model, Sequelize, DataTypes as DataTypesType, Optional } from "sequelize";
 import { DBSchemas } from "..";
 
-export = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
-	class Tokens extends Model {
+export interface TokenAttributes {
+	id: number;
+	user_id: number;
+	token: string;
+}
+
+export interface TokenCreationAttributes extends Optional<TokenAttributes, "id"> {}
+
+const TokenSchema = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
+	class Tokens extends Model<TokenAttributes, TokenCreationAttributes> implements TokenAttributes {
+		public id!: number;
+		public user_id!: number;
+		public token!: string;
+
 		static associate(models: DBSchemas) {
-			Tokens.belongsTo(models.Users);
+			models.UserSchema && Tokens.belongsTo(models.UserSchema);
 		}
 	}
 
 	Tokens.init(
 		{
+			id: {
+				type: DataTypes.INTEGER,
+				primaryKey: true,
+			},
 			user_id: DataTypes.INTEGER,
 			token: DataTypes.STRING,
 		},
@@ -23,3 +37,5 @@ export = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 
 	return Tokens;
 };
+
+export default TokenSchema;

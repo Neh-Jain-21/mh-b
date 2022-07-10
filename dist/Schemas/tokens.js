@@ -1,12 +1,17 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-module.exports = (sequelize, DataTypes) => {
+const TokenSchema = (sequelize, DataTypes) => {
     class Tokens extends sequelize_1.Model {
         static associate(models) {
-            Tokens.belongsTo(models.Users);
+            models.UserSchema && Tokens.belongsTo(models.UserSchema);
         }
     }
     Tokens.init({
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+        },
         user_id: DataTypes.INTEGER,
         token: DataTypes.STRING,
     }, {
@@ -15,3 +20,4 @@ module.exports = (sequelize, DataTypes) => {
     });
     return Tokens;
 };
+exports.default = TokenSchema;

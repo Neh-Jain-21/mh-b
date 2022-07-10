@@ -1,6 +1,9 @@
 import { Request, Response } from "express-serve-static-core";
-import { ModelStatic } from "sequelize";
+import { ModelStatic, Sequelize, DataTypes as DataTypesType, Model } from "sequelize";
 import ResponseHandler from "./Configs/ResponseHandler";
+// SCHEMAS
+import { UserAttributes, UserCreationAttributes } from "./Schemas/users";
+import { TokenAttributes, TokenCreationAttributes } from "./Schemas/tokens";
 
 declare module "express-serve-static-core" {
 	export interface Response {
@@ -9,6 +12,13 @@ declare module "express-serve-static-core" {
 		 */
 		handler: ResponseHandler;
 	}
+
+	export interface Request {
+		/**
+		 * User details if logged in
+		 */
+		user: { id: number };
+	}
 }
 
 export interface ICustomModel extends ModelStatic<Model> {
@@ -16,6 +26,6 @@ export interface ICustomModel extends ModelStatic<Model> {
 }
 
 export type DBSchemas = {
-	[Users: string]: ICustomModel;
-	[Tokens: string]: ICustomModel;
+	["UserSchema"]?: ModelStatic<Model<UserAttributes, UserCreationAttributes>>;
+	["TokenSchema"]?: ModelStatic<Model<TokenAttributes, TokenCreationAttributes>>;
 };

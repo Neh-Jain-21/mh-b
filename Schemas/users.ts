@@ -1,20 +1,61 @@
-"use strict";
-
-import { Model, Sequelize, DataTypes as DataTypesType } from "sequelize";
+import { Model, Sequelize, DataTypes as DataTypesType, Optional } from "sequelize";
 import { DBSchemas } from "..";
 
-export = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
-	class Users extends Model {
+export interface UserAttributes {
+	id: number;
+	username: string;
+	email: string;
+	password: string;
+	name: string | null;
+	tagline: string | null;
+	bio: string | null;
+	profile_img: string | null;
+	cover_img: string | null;
+	web_link: string | null;
+	twitter_link: string | null;
+	meta_link: string | null;
+	instagram_link: string | null;
+	otp: string | null;
+	is_active: boolean;
+}
+
+export interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
+
+const UserSchema = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
+	class Users extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+		public id!: number;
+		public username!: string;
+		public email!: string;
+		public password!: string;
+		public name!: string | null;
+		public tagline!: string | null;
+		public bio!: string | null;
+		public profile_img!: string | null;
+		public cover_img!: string | null;
+		public web_link!: string | null;
+		public twitter_link!: string | null;
+		public meta_link!: string | null;
+		public instagram_link!: string | null;
+		public otp!: string | null;
+		public is_active!: boolean;
+		public readonly createdAt!: Date;
+		public readonly updatedAt!: Date;
+
 		static associate(models: DBSchemas) {
-			Users.hasMany(models.Tokens, {
-				foreignKey: "user_id",
-				onDelete: "CASCADE",
-			});
+			models.TokenSchema &&
+				Users.hasMany(models.TokenSchema, {
+					foreignKey: "user_id",
+					onDelete: "CASCADE",
+				});
 		}
 	}
 
 	Users.init(
 		{
+			id: {
+				type: DataTypes.INTEGER,
+				primaryKey: true,
+			},
 			username: DataTypes.STRING,
 			email: DataTypes.STRING,
 			password: DataTypes.STRING,
@@ -38,3 +79,5 @@ export = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 
 	return Users;
 };
+
+export default UserSchema;
