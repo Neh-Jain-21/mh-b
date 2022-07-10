@@ -54,7 +54,9 @@ const UserSchema = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 		{
 			id: {
 				type: DataTypes.INTEGER,
+				autoIncrement: true,
 				primaryKey: true,
+				allowNull: false,
 			},
 			username: DataTypes.STRING,
 			email: DataTypes.STRING,

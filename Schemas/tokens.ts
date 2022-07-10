@@ -24,7 +24,9 @@ const TokenSchema = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 		{
 			id: {
 				type: DataTypes.INTEGER,
+				autoIncrement: true,
 				primaryKey: true,
+				allowNull: false,
 			},
 			user_id: DataTypes.INTEGER,
 			token: DataTypes.STRING,

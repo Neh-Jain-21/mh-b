@@ -10,7 +10,9 @@ const TokenSchema = (sequelize, DataTypes) => {
     Tokens.init({
         id: {
             type: DataTypes.INTEGER,
+            autoIncrement: true,
             primaryKey: true,
+            allowNull: false,
         },
         user_id: DataTypes.INTEGER,
         token: DataTypes.STRING,
