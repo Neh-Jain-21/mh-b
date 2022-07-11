@@ -269,7 +269,9 @@ class AuthController {
 
 	async forgotPassword(req: Request, res: Response) {
 		try {
-			const userUpdated = await User?.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } });
+			const password = await Encrypt.cryptPassword(req.body.password);
+
+			const userUpdated = await User?.update({ password, otp: null }, { where: { email: req.body.email } });
 
 			if (userUpdated && !userUpdated[0]) {
 				res.handler.notFound({}, "Something went wrong!");

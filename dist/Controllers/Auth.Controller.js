@@ -253,7 +253,8 @@ class AuthController {
     forgotPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const userUpdated = yield (User === null || User === void 0 ? void 0 : User.update({ password: req.body.password, otp: null }, { where: { email: req.body.email } }));
+                const password = yield Encrypt_1.default.cryptPassword(req.body.password);
+                const userUpdated = yield (User === null || User === void 0 ? void 0 : User.update({ password, otp: null }, { where: { email: req.body.email } }));
                 if (userUpdated && !userUpdated[0]) {
                     res.handler.notFound({}, "Something went wrong!");
                 }
