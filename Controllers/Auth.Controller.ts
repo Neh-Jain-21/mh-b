@@ -156,7 +156,7 @@ class AuthController {
 			}
 
 			if (userFound.getDataValue("is_active")) {
-				res.sendFile(path.resolve("views/alreadyVerified.html"));
+				res.render("AlreadyVerified");
 				return;
 			}
 
@@ -167,7 +167,7 @@ class AuthController {
 				);
 
 				if (updated) {
-					res.sendFile(path.resolve("views/verifyEmail.html"));
+					res.render("VerifyEmail");
 				} else {
 					res.handler.notFound({}, "Incorrect credentials");
 				}

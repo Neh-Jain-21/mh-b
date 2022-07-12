@@ -11,7 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const path_1 = __importDefault(require("path"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sequelize_1 = require("sequelize");
 // CONFIGS
@@ -147,13 +146,13 @@ class AuthController {
                     return;
                 }
                 if (userFound.getDataValue("is_active")) {
-                    res.sendFile(path_1.default.resolve("views/alreadyVerified.html"));
+                    res.render("AlreadyVerified");
                     return;
                 }
                 if (req.query.l1 == userFound.getDataValue("otp")) {
                     const updated = yield (User === null || User === void 0 ? void 0 : User.update({ is_active: true, otp: null }, { where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } }));
                     if (updated) {
-                        res.sendFile(path_1.default.resolve("views/verifyEmail.html"));
+                        res.render("VerifyEmail");
                     }
                     else {
                         res.handler.notFound({}, "Incorrect credentials");

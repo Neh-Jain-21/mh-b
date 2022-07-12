@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>MediaHost</title>
+
+		<style>
+			.container {
+				height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				color: grey;
+			}
+
+			.container h1 {
+				margin: 0px;
+			}
+
+			.container .click {
+				cursor: pointer;
+				color: black;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Email verified!</h1>
+			<h3>
+				You can <span class="click" onclick="closeWindow()">close</span> this tab or go to
+				<span class="click" onclick="openWindow()">MediaHost</span>
+			</h3>
+		</div>
+
+		<script>
+			function openWindow() {
+				window.open("https://mediahost.vercel.app/", "_blank");
+				window.close();
+			}
+
+			function closeWindow() {
+				window.close();
+			}
+		</script>
+	</body>
+</html>
