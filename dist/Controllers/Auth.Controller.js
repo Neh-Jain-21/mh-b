@@ -20,7 +20,16 @@ const Encrypt_1 = __importDefault(require("../Configs/Encrypt"));
 const Schemas_1 = __importDefault(require("../Schemas"));
 const User = Schemas_1.default.UserSchema;
 const Token = Schemas_1.default.TokenSchema;
+/** Authentication controller functions */
 class AuthController {
+    /** Authentication controller functions */
+    constructor() { }
+    /**
+     * Login route controller.
+     * Can login with username or email both.
+     * Generate or saves token to db.
+     * @Response token and username
+     */
     logIn(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -67,6 +76,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Signup route controller
+     */
     signUp(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -133,6 +145,10 @@ class AuthController {
             }
         });
     }
+    /**
+     * Verify email controller. Triggered wheh link sent through email.
+     * @Renders VerfyEmail template
+     */
     verifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -168,6 +184,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Resend verify email controller
+     */
     resendVerifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -201,6 +220,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Forgot pass email controller
+     */
     sendForgotPassEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -233,6 +255,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Otp verification sent on email for forgotpass
+     */
     verifyOtp(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -249,6 +274,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Change password once otp verified
+     */
     forgotPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -265,6 +293,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Reset password controller when user is logged in
+     */
     resetPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -275,6 +306,9 @@ class AuthController {
             }
         });
     }
+    /**
+     * Destroys token and logs out user
+     */
     logOut(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

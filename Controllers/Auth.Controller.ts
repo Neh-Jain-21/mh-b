@@ -12,7 +12,17 @@ import Schemas from "../Schemas";
 const User = Schemas.UserSchema;
 const Token = Schemas.TokenSchema;
 
+/** Authentication controller functions */
 class AuthController {
+	/** Authentication controller functions */
+	constructor() {}
+
+	/**
+	 * Login route controller.
+	 * Can login with username or email both.
+	 * Generate or saves token to db.
+	 * @Response token and username
+	 */
 	async logIn(req: Request, res: Response) {
 		try {
 			const params = req.body;
@@ -65,6 +75,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Signup route controller
+	 */
 	async signUp(req: Request, res: Response) {
 		try {
 			const params = req.body;
@@ -141,6 +154,10 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Verify email controller. Triggered wheh link sent through email.
+	 * @Renders VerfyEmail template
+	 */
 	async verifyEmail(req: Request, res: Response) {
 		try {
 			if (!req.query.l2 || !req.query.l1) {
@@ -180,6 +197,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Resend verify email controller
+	 */
 	async resendVerifyEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
@@ -219,6 +239,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Forgot pass email controller
+	 */
 	async sendForgotPassEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
@@ -251,6 +274,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Otp verification sent on email for forgotpass
+	 */
 	async verifyOtp(req: Request, res: Response) {
 		try {
 			const details = await User?.findOne({ where: { email: req.body.email, otp: req.body.otp } });
@@ -267,6 +293,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Change password once otp verified
+	 */
 	async forgotPassword(req: Request, res: Response) {
 		try {
 			const password = await Encrypt.cryptPassword(req.body.password);
@@ -284,6 +313,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Reset password controller when user is logged in
+	 */
 	async resetPassword(req: Request, res: Response) {
 		try {
 		} catch (error) {
@@ -292,6 +324,9 @@ class AuthController {
 		}
 	}
 
+	/**
+	 * Destroys token and logs out user
+	 */
 	async logOut(req: Request, res: Response) {
 		try {
 			const loggedOut = await Token?.destroy({ where: { user_id: req.user.id } });

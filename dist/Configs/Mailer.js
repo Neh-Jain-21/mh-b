@@ -3,6 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 const nodemailer_1 = __importDefault(require("nodemailer"));
+/**
+ * Email sender.
+ *
+ * Update details in env to send email.
+ */
 const Mailer = (to, subject, html, callBack) => {
     // SET MAIL TRANSPORTER
     const transporter = nodemailer_1.default.createTransport({
