@@ -4,7 +4,7 @@ const sequelize_1 = require("sequelize");
 const TokenSchema = (sequelize, DataTypes) => {
     class Tokens extends sequelize_1.Model {
         static associate(models) {
-            models.UserSchema && Tokens.belongsTo(models.UserSchema);
+            models.UserSchema && Tokens.belongsTo(models.UserSchema, { foreignKey: "user_id" });
         }
     }
     Tokens.init({

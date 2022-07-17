@@ -16,7 +16,7 @@ const TokenSchema = (sequelize: Sequelize, DataTypes: typeof DataTypesType) => {
 		public token!: string;
 
 		static associate(models: DBSchemas) {
-			models.UserSchema && Tokens.belongsTo(models.UserSchema);
+			models.UserSchema && Tokens.belongsTo(models.UserSchema, { foreignKey: "user_id" });
 		}
 	}
 
