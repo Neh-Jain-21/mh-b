@@ -1,4 +1,3 @@
-import path from "path";
 import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
 // CONFIGS

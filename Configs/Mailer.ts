@@ -6,7 +6,6 @@ import nodemailer from "nodemailer";
  * Update details in env to send email.
  */
 const Mailer = (to: string, subject: string, html: any, callBack: (err: Error | null, info: any) => void) => {
-	// SET MAIL TRANSPORTER
 	const transporter = nodemailer.createTransport({
 		host: "smtp.gmail.com",
 		port: 587,

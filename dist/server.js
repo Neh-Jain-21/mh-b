@@ -50,10 +50,10 @@ const Routes_1 = __importDefault(require("./Routes"));
 // --------------------------    START SERVER    ---------------------
 server.listen(port, () => {
     // START ON PUBLIC NETWORK
+    console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
+    console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
     (() => __awaiter(void 0, void 0, void 0, function* () {
         const tunnel = yield (0, localtunnel_1.default)({ port: parseInt(port), subdomain: process.env.APP_NAME });
-        console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
-        console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
         console.log(` Public:\t ${tunnel.url}\n`);
     }))();
 });

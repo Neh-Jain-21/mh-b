@@ -44,11 +44,12 @@ Routes(app);
 // --------------------------    START SERVER    ---------------------
 server.listen(port, () => {
 	// START ON PUBLIC NETWORK
+	console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
+	console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
+
 	(async () => {
 		const tunnel = await localtunnel({ port: parseInt(port), subdomain: process.env.APP_NAME });
 
-		console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
-		console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
 		console.log(` Public:\t ${tunnel.url}\n`);
 	})();
 });
