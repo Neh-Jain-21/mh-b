@@ -19,16 +19,10 @@ const Token = Schemas_1.default.TokenSchema;
 const Authorization = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const token = req.headers["authorization"];
-        if (!token) {
-            res.handler.validationError(undefined, "Invalid token");
-        }
         const secret = process.env.JWT_SECRET;
         if (token && secret) {
             const data = jsonwebtoken_1.default.verify(token, secret);
-            const userData = yield (Token === null || Token === void 0 ? void 0 : Token.findOne({
-                where: { token: token, user_id: data.id },
-            }));
-            console.log(JSON.stringify(userData));
+            const userData = yield (Token === null || Token === void 0 ? void 0 : Token.findOne({ attributes: ["id"], where: { token: token, user_id: data.id } }));
             if (!userData) {
                 res.handler.unauthorized();
                 return;

@@ -35,12 +35,12 @@ class AuthController {
 
 			if (params.username.includes("@")) {
 				userFound = await User?.findOne({
-					attributes: ["id", "is_active", "username", "password"],
+					attributes: ["id", "is_active", "username", "name", "password"],
 					where: { email: params.username },
 				});
 			} else {
 				userFound = await User?.findOne({
-					attributes: ["id", "is_active", "username", "password"],
+					attributes: ["id", "is_active", "username", "name", "password"],
 					where: { username: params.username },
 				});
 			}
@@ -61,10 +61,7 @@ class AuthController {
 					await Token?.create({ user_id: userFound.getDataValue("id"), token });
 				}
 
-				res.handler.success(
-					{ token, username: userFound.getDataValue("username") },
-					`Login Succesfull, Welcome ${userFound.getDataValue("username")}`
-				);
+				res.handler.success({ token, name: userFound.getDataValue("name"), username: userFound.getDataValue("username") }, `Login Succesfull, Welcome ${userFound.getDataValue("username")}`);
 			} else {
 				res.handler.notAllowed({}, "Please verify email first");
 			}
@@ -130,12 +127,7 @@ class AuthController {
 					}
 				};
 
-				Mailer(
-					params.email,
-					"Confirm Email",
-					`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`,
-					callBack
-				);
+				Mailer(params.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, callBack);
 
 				if (emailSent) {
 					res.handler.success({}, `Welcome! Please verify your email`);
@@ -177,10 +169,7 @@ class AuthController {
 			}
 
 			if (req.query.l1 == userFound.getDataValue("otp")) {
-				const updated = await User?.update(
-					{ is_active: true, otp: null },
-					{ where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } }
-				);
+				const updated = await User?.update({ is_active: true, otp: null }, { where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } });
 
 				if (updated) {
 					res.render("VerifyEmail");
@@ -210,22 +199,16 @@ class AuthController {
 			}
 
 			let emailSent = true;
-			const link =
-				userUpdated && `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].getDataValue("id")}`;
+			const link = userUpdated && `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].getDataValue("id")}`;
 
-			Mailer(
-				req.body.email,
-				"Confirm Email",
-				`Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`,
-				(error: Error | null, info: any) => {
-					if (error) {
-						console.log(error);
-						emailSent = false;
-					} else {
-						emailSent = true;
-					}
+			Mailer(req.body.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, (error: Error | null, info: any) => {
+				if (error) {
+					console.log(error);
+					emailSent = false;
+				} else {
+					emailSent = true;
 				}
-			);
+			});
 
 			if (emailSent) {
 				res.handler.success({}, "Email sent");

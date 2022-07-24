@@ -41,13 +41,13 @@ class AuthController {
                 let userFound = null;
                 if (params.username.includes("@")) {
                     userFound = yield (User === null || User === void 0 ? void 0 : User.findOne({
-                        attributes: ["id", "is_active", "username", "password"],
+                        attributes: ["id", "is_active", "username", "name", "password"],
                         where: { email: params.username },
                     }));
                 }
                 else {
                     userFound = yield (User === null || User === void 0 ? void 0 : User.findOne({
-                        attributes: ["id", "is_active", "username", "password"],
+                        attributes: ["id", "is_active", "username", "name", "password"],
                         where: { username: params.username },
                     }));
                 }
@@ -64,7 +64,7 @@ class AuthController {
                     else {
                         yield (Token === null || Token === void 0 ? void 0 : Token.create({ user_id: userFound.getDataValue("id"), token }));
                     }
-                    res.handler.success({ token, username: userFound.getDataValue("username") }, `Login Succesfull, Welcome ${userFound.getDataValue("username")}`);
+                    res.handler.success({ token, name: userFound.getDataValue("name"), username: userFound.getDataValue("username") }, `Login Succesfull, Welcome ${userFound.getDataValue("username")}`);
                 }
                 else {
                     res.handler.notAllowed({}, "Please verify email first");
