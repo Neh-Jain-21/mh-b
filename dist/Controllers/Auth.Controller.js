@@ -12,23 +12,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const sequelize_1 = require("sequelize");
 // CONFIGS
 const Mailer_1 = __importDefault(require("../Configs/Mailer"));
 const Encrypt_1 = __importDefault(require("../Configs/Encrypt"));
 // SCHEMAS
-const Schemas_1 = __importDefault(require("../Schemas"));
-const User = Schemas_1.default.UserSchema;
-const Token = Schemas_1.default.TokenSchema;
+const Users_1 = __importDefault(require("../Database/Schemas/Users"));
+const UserTokens_1 = __importDefault(require("../Database/Schemas/UserTokens"));
 /** Authentication controller functions */
 class AuthController {
     /** Authentication controller functions */
     constructor() { }
     /**
-     * Login route controller.
+     * Login controller.
      * Can login with username or email both.
      * Generate or saves token to db.
-     * @Response token and username
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     logIn(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -40,31 +40,25 @@ class AuthController {
                 }
                 let userFound = null;
                 if (params.username.includes("@")) {
-                    userFound = yield (User === null || User === void 0 ? void 0 : User.findOne({
-                        attributes: ["id", "is_active", "username", "name", "password"],
-                        where: { email: params.username },
-                    }));
+                    userFound = yield Users_1.default.findOne({ email: params.username }, { _id: 1, username: 1, password: 1, is_active: 1, name: 1 });
                 }
                 else {
-                    userFound = yield (User === null || User === void 0 ? void 0 : User.findOne({
-                        attributes: ["id", "is_active", "username", "name", "password"],
-                        where: { username: params.username },
-                    }));
+                    userFound = yield Users_1.default.findOne({ username: params.username }, { _id: 1, username: 1, password: 1, is_active: 1, name: 1 });
                 }
-                if (!userFound || (userFound && !(yield Encrypt_1.default.comparePassword(params.password, userFound.getDataValue("password"))))) {
+                if (!userFound || (userFound && !(yield Encrypt_1.default.comparePassword(params.password, userFound.password)))) {
                     res.handler.validationError({}, "Email, username or password invalid");
                     return;
                 }
-                if (userFound.getDataValue("is_active") && process.env.JWT_SECRET) {
-                    const token = jsonwebtoken_1.default.sign({ id: userFound.getDataValue("id") }, process.env.JWT_SECRET);
-                    const tokenAvailable = yield (Token === null || Token === void 0 ? void 0 : Token.findOne({ attributes: ["id"], where: { user_id: userFound.getDataValue("id") } }));
+                if (userFound.is_active && process.env.JWT_SECRET) {
+                    const token = jsonwebtoken_1.default.sign({ _id: userFound._id }, process.env.JWT_SECRET);
+                    const tokenAvailable = yield UserTokens_1.default.findOne({ user_id: userFound._id }, { _id: 1 });
                     if (tokenAvailable) {
-                        yield (Token === null || Token === void 0 ? void 0 : Token.update({ token }, { where: { user_id: userFound.getDataValue("id") } }));
+                        yield UserTokens_1.default.updateOne({ user_id: userFound._id }, { token });
                     }
                     else {
-                        yield (Token === null || Token === void 0 ? void 0 : Token.create({ user_id: userFound.getDataValue("id"), token }));
+                        yield UserTokens_1.default.create({ user_id: userFound._id, token });
                     }
-                    res.handler.success({ token, name: userFound.getDataValue("name"), username: userFound.getDataValue("username") }, `Login Succesfull, Welcome ${userFound.getDataValue("username")}`);
+                    res.handler.success({ token, name: userFound.name, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
                 }
                 else {
                     res.handler.notAllowed({}, "Please verify email first");
@@ -77,7 +71,10 @@ class AuthController {
         });
     }
     /**
-     * Signup route controller
+     * Signup controller
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     signUp(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -87,16 +84,9 @@ class AuthController {
                     res.handler.validationError({});
                     return;
                 }
-                const alreadyExists = yield (User === null || User === void 0 ? void 0 : User.findOne({
-                    where: {
-                        [sequelize_1.Op.or]: {
-                            email: params.email,
-                            username: params.username,
-                        },
-                    },
-                }));
+                const alreadyExists = yield Users_1.default.findOne({ $or: [{ email: params.email, username: params.username }] });
                 if (alreadyExists) {
-                    if (alreadyExists.getDataValue("email") === params.email) {
+                    if (alreadyExists.email === params.email) {
                         res.handler.conflict({}, "Email already taken");
                         return;
                     }
@@ -107,16 +97,10 @@ class AuthController {
                 }
                 const random = Math.floor(100000000 + Math.random() * 900000000);
                 const encryptedPassword = yield Encrypt_1.default.cryptPassword(params.password);
-                const userCreated = yield (User === null || User === void 0 ? void 0 : User.create({
-                    username: params.username,
-                    email: params.email,
-                    password: encryptedPassword,
-                    otp: random.toString(),
-                    is_active: false,
-                }));
+                const userCreated = yield Users_1.default.create({ username: params.username, email: params.email, password: encryptedPassword, otp: random.toString(), is_active: false });
                 if (userCreated) {
                     let emailSent = true;
-                    const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.getDataValue("id")}`;
+                    const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated._id}`;
                     const callBack = (error, info) => {
                         if (error) {
                             console.log(error);
@@ -131,7 +115,7 @@ class AuthController {
                         res.handler.success({}, `Welcome! Please verify your email`);
                     }
                     else {
-                        yield (User === null || User === void 0 ? void 0 : User.destroy({ where: { id: userCreated.getDataValue("id") } }));
+                        yield Users_1.default.deleteOne({ _id: userCreated._id });
                         res.handler.serverError({}, "Cannot send email!");
                     }
                 }
@@ -146,8 +130,10 @@ class AuthController {
         });
     }
     /**
-     * Verify email controller. Triggered wheh link sent through email.
-     * @Renders VerfyEmail template
+     * Verify email controller
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     verifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -156,17 +142,17 @@ class AuthController {
                     res.handler.validationError();
                     return;
                 }
-                const userFound = yield (User === null || User === void 0 ? void 0 : User.findOne({ where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } }));
+                const userFound = yield Users_1.default.findOne({ _id: typeof req.query.l2 === "string" && parseInt(req.query.l2) });
                 if (!userFound) {
                     res.handler.notFound({}, "User not found");
                     return;
                 }
-                if (userFound.getDataValue("is_active")) {
+                if (userFound.is_active) {
                     res.render("AlreadyVerified");
                     return;
                 }
-                if (req.query.l1 == userFound.getDataValue("otp")) {
-                    const updated = yield (User === null || User === void 0 ? void 0 : User.update({ is_active: true, otp: null }, { where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } }));
+                if (req.query.l1 == userFound.otp) {
+                    const updated = yield Users_1.default.updateOne({ _id: typeof req.query.l2 === "string" && parseInt(req.query.l2) }, { is_active: true, otp: null });
                     if (updated) {
                         res.render("VerifyEmail");
                     }
@@ -186,18 +172,21 @@ class AuthController {
     }
     /**
      * Resend verify email controller
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     resendVerifyEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const random = Math.floor(100000000 + Math.random() * 900000000);
-                const userUpdated = yield (User === null || User === void 0 ? void 0 : User.update({ otp: random.toString() }, { where: { email: req.body.email }, returning: true }));
-                if (userUpdated && !userUpdated[0]) {
+                const userUpdated = yield Users_1.default.updateOne({ email: req.body.email }, { otp: random.toString() }, { projection: { _id: 1 } });
+                if (!userUpdated.upsertedId) {
                     res.handler.notFound({}, "Email not found!");
                     return;
                 }
                 let emailSent = true;
-                const link = userUpdated && `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].getDataValue("id")}`;
+                const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated.upsertedId}`;
                 (0, Mailer_1.default)(req.body.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, (error, info) => {
                     if (error) {
                         console.log(error);
@@ -222,13 +211,16 @@ class AuthController {
     }
     /**
      * Forgot pass email controller
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     sendForgotPassEmail(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const random = Math.floor(100000000 + Math.random() * 900000000);
-                const userUpdated = yield (User === null || User === void 0 ? void 0 : User.update({ otp: random.toString() }, { where: { email: req.body.email } }));
-                if (userUpdated && !userUpdated[0]) {
+                const userUpdated = yield Users_1.default.updateOne({ email: req.body.email }, { otp: random.toString() });
+                if (userUpdated.upsertedId) {
                     res.handler.notFound({}, "Email not found!");
                     return;
                 }
@@ -257,12 +249,15 @@ class AuthController {
     }
     /**
      * Otp verification sent on email for forgotpass
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     verifyOtp(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const details = yield (User === null || User === void 0 ? void 0 : User.findOne({ where: { email: req.body.email, otp: req.body.otp } }));
-                if (!details) {
+                const details = yield Users_1.default.findOne({ email: req.body.email, otp: req.body.otp }, { _id: 1 });
+                if (!(details === null || details === void 0 ? void 0 : details._id)) {
                     res.handler.notFound();
                     return;
                 }
@@ -276,14 +271,18 @@ class AuthController {
     }
     /**
      * Change password once otp verified
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     forgotPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const password = yield Encrypt_1.default.cryptPassword(req.body.password);
-                const userUpdated = yield (User === null || User === void 0 ? void 0 : User.update({ password, otp: null }, { where: { email: req.body.email } }));
-                if (userUpdated && !userUpdated[0]) {
+                const userUpdated = yield Users_1.default.updateOne({ email: req.body.email }, { password, otp: null });
+                if (!userUpdated.modifiedCount) {
                     res.handler.notFound({}, "Something went wrong!");
+                    return;
                 }
                 res.handler.success({}, "Password updated");
             }
@@ -295,6 +294,9 @@ class AuthController {
     }
     /**
      * Reset password controller when user is logged in
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     resetPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -308,11 +310,14 @@ class AuthController {
     }
     /**
      * Destroys token and logs out user
+     * @param req Express Request
+     * @param res Express Response
+     * @returns Promise<void>
      */
     logOut(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const loggedOut = yield (Token === null || Token === void 0 ? void 0 : Token.destroy({ where: { user_id: req.user.id } }));
+                const loggedOut = yield UserTokens_1.default.deleteOne({ user_id: req.user._id });
                 loggedOut ? res.handler.success({}, "Logged out") : res.handler.serverError();
             }
             catch (error) {

@@ -13,21 +13,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 // SCHEMAS
-const Schemas_1 = __importDefault(require("../Schemas"));
-const User = Schemas_1.default.UserSchema;
-const Token = Schemas_1.default.TokenSchema;
+const UserTokens_1 = __importDefault(require("../Database/Schemas/UserTokens"));
 const Authorization = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const token = req.headers["authorization"];
         const secret = process.env.JWT_SECRET;
         if (token && secret) {
             const data = jsonwebtoken_1.default.verify(token, secret);
-            const userData = yield (Token === null || Token === void 0 ? void 0 : Token.findOne({ attributes: ["id"], where: { token: token, user_id: data.id } }));
+            const userData = yield UserTokens_1.default.findOne({ token: token, user_id: data._id }, { _id: 1 });
             if (!userData) {
                 res.handler.unauthorized();
                 return;
             }
-            req.user = { id: parseInt(data.id) };
+            req.user = { _id: data._id };
             next();
         }
         else {

@@ -9,7 +9,7 @@ import ResponseHandler from "./Configs/ResponseHandler";
 // PARSE ENV
 dotenv.config();
 // DATABASE CONNECTION
-import "./Configs/Database";
+import "./Database/Database";
 
 const app = express();
 const port = process.env.PORT || (8000).toString();
@@ -47,9 +47,9 @@ server.listen(port, () => {
 	console.log("\x1b[32m%s\x1b[0m", "Compiled Successfully!");
 	console.log(`\n Local:\t\t http://localhost:${process.env.PORT}`);
 
-	(async () => {
-		const tunnel = await localtunnel({ port: parseInt(port), subdomain: process.env.APP_NAME });
+	// (async () => {
+	// 	const tunnel = await localtunnel({ port: parseInt(port), subdomain: process.env.APP_NAME });
 
-		console.log(` Public:\t ${tunnel.url}\n`);
-	})();
+	// 	console.log(` Public:\t ${tunnel.url}\n`);
+	// })();
 });

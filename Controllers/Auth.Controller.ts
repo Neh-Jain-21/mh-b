@@ -1,15 +1,12 @@
 import jwt from "jsonwebtoken";
-import { Op } from "sequelize";
 // CONFIGS
 import Mailer from "../Configs/Mailer";
 import Encrypt from "../Configs/Encrypt";
 // TYPES
 import { Request, Response } from "express";
 // SCHEMAS
-import Schemas from "../Schemas";
-
-const User = Schemas.UserSchema;
-const Token = Schemas.TokenSchema;
+import Users from "../Database/Schemas/Users";
+import UserTokens from "../Database/Schemas/UserTokens";
 
 /** Authentication controller functions */
 class AuthController {
@@ -17,10 +14,12 @@ class AuthController {
 	constructor() {}
 
 	/**
-	 * Login route controller.
+	 * Login controller.
 	 * Can login with username or email both.
 	 * Generate or saves token to db.
-	 * @Response token and username
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async logIn(req: Request, res: Response) {
 		try {
@@ -34,34 +33,28 @@ class AuthController {
 			let userFound = null;
 
 			if (params.username.includes("@")) {
-				userFound = await User?.findOne({
-					attributes: ["id", "is_active", "username", "name", "password"],
-					where: { email: params.username },
-				});
+				userFound = await Users.findOne({ email: params.username }, { _id: 1, username: 1, password: 1, is_active: 1, name: 1 });
 			} else {
-				userFound = await User?.findOne({
-					attributes: ["id", "is_active", "username", "name", "password"],
-					where: { username: params.username },
-				});
+				userFound = await Users.findOne({ username: params.username }, { _id: 1, username: 1, password: 1, is_active: 1, name: 1 });
 			}
 
-			if (!userFound || (userFound && !(await Encrypt.comparePassword(params.password, userFound.getDataValue("password"))))) {
+			if (!userFound || (userFound && !(await Encrypt.comparePassword(params.password, userFound.password)))) {
 				res.handler.validationError({}, "Email, username or password invalid");
 				return;
 			}
 
-			if (userFound.getDataValue("is_active") && process.env.JWT_SECRET) {
-				const token = jwt.sign({ id: userFound.getDataValue("id") }, process.env.JWT_SECRET);
+			if (userFound.is_active && process.env.JWT_SECRET) {
+				const token = jwt.sign({ _id: userFound._id }, process.env.JWT_SECRET);
 
-				const tokenAvailable = await Token?.findOne({ attributes: ["id"], where: { user_id: userFound.getDataValue("id") } });
+				const tokenAvailable = await UserTokens.findOne({ user_id: userFound._id }, { _id: 1 });
 
 				if (tokenAvailable) {
-					await Token?.update({ token }, { where: { user_id: userFound.getDataValue("id") } });
+					await UserTokens.updateOne({ user_id: userFound._id }, { token });
 				} else {
-					await Token?.create({ user_id: userFound.getDataValue("id"), token });
+					await UserTokens.create({ user_id: userFound._id, token });
 				}
 
-				res.handler.success({ token, name: userFound.getDataValue("name"), username: userFound.getDataValue("username") }, `Login Succesfull, Welcome ${userFound.getDataValue("username")}`);
+				res.handler.success({ token, name: userFound.name, username: userFound.username }, `Login Succesfull, Welcome ${userFound.username}`);
 			} else {
 				res.handler.notAllowed({}, "Please verify email first");
 			}
@@ -72,7 +65,10 @@ class AuthController {
 	}
 
 	/**
-	 * Signup route controller
+	 * Signup controller
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async signUp(req: Request, res: Response) {
 		try {
@@ -83,17 +79,10 @@ class AuthController {
 				return;
 			}
 
-			const alreadyExists = await User?.findOne({
-				where: {
-					[Op.or]: {
-						email: params.email,
-						username: params.username,
-					},
-				},
-			});
+			const alreadyExists = await Users.findOne({ $or: [{ email: params.email, username: params.username }] });
 
 			if (alreadyExists) {
-				if (alreadyExists.getDataValue("email") === params.email) {
+				if (alreadyExists.email === params.email) {
 					res.handler.conflict({}, "Email already taken");
 					return;
 				} else {
@@ -105,17 +94,11 @@ class AuthController {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
 			const encryptedPassword = await Encrypt.cryptPassword(params.password);
 
-			const userCreated = await User?.create({
-				username: params.username,
-				email: params.email,
-				password: encryptedPassword,
-				otp: random.toString(),
-				is_active: false,
-			});
+			const userCreated = await Users.create({ username: params.username, email: params.email, password: encryptedPassword, otp: random.toString(), is_active: false });
 
 			if (userCreated) {
 				let emailSent = true;
-				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated.getDataValue("id")}`;
+				const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userCreated._id}`;
 
 				const callBack = (error: Error | null, info: any) => {
 					if (error) {
@@ -132,7 +115,7 @@ class AuthController {
 				if (emailSent) {
 					res.handler.success({}, `Welcome! Please verify your email`);
 				} else {
-					await User?.destroy({ where: { id: userCreated.getDataValue("id") } });
+					await Users.deleteOne({ _id: userCreated._id });
 
 					res.handler.serverError({}, "Cannot send email!");
 				}
@@ -146,8 +129,10 @@ class AuthController {
 	}
 
 	/**
-	 * Verify email controller. Triggered wheh link sent through email.
-	 * @Renders VerfyEmail template
+	 * Verify email controller
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async verifyEmail(req: Request, res: Response) {
 		try {
@@ -156,20 +141,20 @@ class AuthController {
 				return;
 			}
 
-			const userFound = await User?.findOne({ where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } });
+			const userFound = await Users.findOne({ _id: typeof req.query.l2 === "string" && parseInt(req.query.l2) });
 
 			if (!userFound) {
 				res.handler.notFound({}, "User not found");
 				return;
 			}
 
-			if (userFound.getDataValue("is_active")) {
+			if (userFound.is_active) {
 				res.render("AlreadyVerified");
 				return;
 			}
 
-			if (req.query.l1 == userFound.getDataValue("otp")) {
-				const updated = await User?.update({ is_active: true, otp: null }, { where: { id: typeof req.query.l2 === "string" && parseInt(req.query.l2) } });
+			if (req.query.l1 == userFound.otp) {
+				const updated = await Users.updateOne({ _id: typeof req.query.l2 === "string" && parseInt(req.query.l2) }, { is_active: true, otp: null });
 
 				if (updated) {
 					res.render("VerifyEmail");
@@ -187,19 +172,22 @@ class AuthController {
 
 	/**
 	 * Resend verify email controller
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async resendVerifyEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
-			const userUpdated = await User?.update({ otp: random.toString() }, { where: { email: req.body.email }, returning: true });
+			const userUpdated = await Users.updateOne({ email: req.body.email }, { otp: random.toString() }, { projection: { _id: 1 } });
 
-			if (userUpdated && !userUpdated[0]) {
+			if (!userUpdated.upsertedId) {
 				res.handler.notFound({}, "Email not found!");
 				return;
 			}
 
 			let emailSent = true;
-			const link = userUpdated && `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated[1][0].getDataValue("id")}`;
+			const link = `${req.protocol}://${req.get("host")}/auth/verify-email?l1=${random}&l2=${userUpdated.upsertedId}`;
 
 			Mailer(req.body.email, "Confirm Email", `Hello,<br> Please Click on the link to verify your email.<br><a href=${link}>Click here to verify</a>`, (error: Error | null, info: any) => {
 				if (error) {
@@ -223,13 +211,16 @@ class AuthController {
 
 	/**
 	 * Forgot pass email controller
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async sendForgotPassEmail(req: Request, res: Response) {
 		try {
 			const random = Math.floor(100000000 + Math.random() * 900000000);
-			const userUpdated = await User?.update({ otp: random.toString() }, { where: { email: req.body.email } });
+			const userUpdated = await Users.updateOne({ email: req.body.email }, { otp: random.toString() });
 
-			if (userUpdated && !userUpdated[0]) {
+			if (userUpdated.upsertedId) {
 				res.handler.notFound({}, "Email not found!");
 				return;
 			}
@@ -258,12 +249,15 @@ class AuthController {
 
 	/**
 	 * Otp verification sent on email for forgotpass
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async verifyOtp(req: Request, res: Response) {
 		try {
-			const details = await User?.findOne({ where: { email: req.body.email, otp: req.body.otp } });
+			const details = await Users.findOne({ email: req.body.email, otp: req.body.otp }, { _id: 1 });
 
-			if (!details) {
+			if (!details?._id) {
 				res.handler.notFound();
 				return;
 			}
@@ -277,15 +271,19 @@ class AuthController {
 
 	/**
 	 * Change password once otp verified
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async forgotPassword(req: Request, res: Response) {
 		try {
 			const password = await Encrypt.cryptPassword(req.body.password);
 
-			const userUpdated = await User?.update({ password, otp: null }, { where: { email: req.body.email } });
+			const userUpdated = await Users.updateOne({ email: req.body.email }, { password, otp: null });
 
-			if (userUpdated && !userUpdated[0]) {
+			if (!userUpdated.modifiedCount) {
 				res.handler.notFound({}, "Something went wrong!");
+				return;
 			}
 
 			res.handler.success({}, "Password updated");
@@ -297,6 +295,9 @@ class AuthController {
 
 	/**
 	 * Reset password controller when user is logged in
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async resetPassword(req: Request, res: Response) {
 		try {
@@ -308,10 +309,13 @@ class AuthController {
 
 	/**
 	 * Destroys token and logs out user
+	 * @param req Express Request
+	 * @param res Express Response
+	 * @returns Promise<void>
 	 */
 	async logOut(req: Request, res: Response) {
 		try {
-			const loggedOut = await Token?.destroy({ where: { user_id: req.user.id } });
+			const loggedOut = await UserTokens.deleteOne({ user_id: req.user._id });
 
 			loggedOut ? res.handler.success({}, "Logged out") : res.handler.serverError();
 		} catch (error) {

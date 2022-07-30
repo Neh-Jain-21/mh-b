@@ -10,9 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
-if (process.env.DB_DATABASE && process.env.DB_USERNAME && process.env.DB_PASSWORD) {
+if (process.env.DB_URI && process.env.DB_NAME) {
     const run = () => __awaiter(void 0, void 0, void 0, function* () {
-        yield (0, mongoose_1.connect)(`mongodb+srv://neh:nehujain21@cluster0.em7em.mongodb.net/?retryWrites=true&w=majority/mediahost`);
+        yield (0, mongoose_1.connect)(process.env.DB_URI || "mongodb://127.0.0.1:27017/mediahost", { dbName: process.env.DB_NAME });
     });
     run()
         .then(() => {

@@ -2,10 +2,7 @@ import jwt from "jsonwebtoken";
 // TYPES
 import { Request, Response, NextFunction } from "express";
 // SCHEMAS
-import Schemas from "../Schemas";
-
-const User = Schemas.UserSchema;
-const Token = Schemas.TokenSchema;
+import UserTokens from "../Database/Schemas/UserTokens";
 
 const Authorization = async (req: Request, res: Response, next: NextFunction) => {
 	try {
@@ -16,14 +13,14 @@ const Authorization = async (req: Request, res: Response, next: NextFunction) =>
 		if (token && secret) {
 			const data: any = jwt.verify(token, secret);
 
-			const userData = await Token?.findOne({ attributes: ["id"], where: { token: token, user_id: data.id } });
+			const userData = await UserTokens.findOne({ token: token, user_id: data._id }, { _id: 1 });
 
 			if (!userData) {
 				res.handler.unauthorized();
 				return;
 			}
 
-			req.user = { id: parseInt(data.id) };
+			req.user = { _id: data._id };
 
 			next();
 		} else {
