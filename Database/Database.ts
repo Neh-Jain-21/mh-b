@@ -1,4 +1,4 @@
-import { connect } from "mongoose";
+import { connect, set } from "mongoose";
 
 if (process.env.DB_URI && process.env.DB_NAME) {
 	const run = async () => {
@@ -8,6 +8,8 @@ if (process.env.DB_URI && process.env.DB_NAME) {
 	run()
 		.then(() => {
 			console.log("Connected to database :)");
+
+			set("toJSON", { virtuals: true });
 		})
 		.catch((reason) => {
 			console.log(reason);
